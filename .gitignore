@@ -1,0 +1,25 @@
+# virtual environments
+argo_venv/
+venv/
+
+# downloaded data
+data_downloads/
+
+# python cache
+__pycache__/
+*.pyc
+
+# secrets
+.env
+
+# log files
+*.log
+download_log.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

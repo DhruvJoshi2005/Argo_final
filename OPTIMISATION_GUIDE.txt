@@ -1,0 +1,57 @@
+Initially, the chat system was very slow and inefficient. Every time a user asked a question, the system did three heavy things again and again: it called the LLM to understand intent, it opened a new database connection, and it ran the SQL query even if the same query had already been executed earlier. Because of this, even repeated questions like “what is temperature” were taking 4–6 seconds every time. This was wasting time, database resources, and OpenAI API calls, and the system was not scalable.
+
+The first optimisation we implemented was intent caching. We observed that if a user asks the same question again, the intent extracted from the LLM will never change. So we introduced an in-memory intent cache where the key is the normalized user question and the value is the parsed intent JSON. On the first request, the LLM is called and the intent is stored in the cache. On subsequent requests with the same question, the LLM call is completely skipped and the cached intent is reused. This reduced the intent extraction time from around 2–4 seconds to just a few milliseconds on repeated queries and also eliminated unnecessary OpenAI API calls.
+
+Next, we enforced strict intent schema validation. Earlier, the LLM sometimes returned definitions, explanations, markdown-wrapped JSON, or extra keys, which caused runtime errors later in the pipeline. We fixed this by strictly allowing only predefined keys like metric, geo, time, depth, and aggregation, stripping markdown if present, and setting safe defaults such as aggregation = avg when missing. This made the intent pipeline deterministic and stable, preventing random crashes.
+
+After that, we implemented database connection pooling. Initially, the system was creating a new PostgreSQL connection for every request and closing it immediately after executing the query. This connection setup and teardown is expensive and slows down the system under load. We replaced this with a connection pool that creates a fixed number of connections at startup and reuses them across requests. Each request now simply borrows a connection from the pool and returns it after use. This removed connection overhead and significantly improved performance and scalability, especially under concurrent load.
+
+The next major optimisation was SQL result caching. We noticed that many analytical queries generate the same SQL repeatedly, especially when the intent is cached. So we introduced a SQL cache where the key is the generated SQL string and the value is the query result. On the first execution, the query hits the database and the result is cached. On subsequent executions of the same SQL, the database is completely skipped and the cached result is returned instantly. This reduced SQL execution time from hundreds of milliseconds to effectively zero for repeated queries and drastically reduced database load.
+
+Along with these optimisations, we added accurate timing and profiling. The system now measures how much time is spent in intent extraction, SQL execution, and the total request lifecycle. This timing information is returned in the API response along with a cache_hit flag that tells whether the result was served from cache or not. This makes performance transparent and helps in debugging, monitoring, and further optimisation.
+
+Finally, we cleaned up the architecture and separation of concerns. The non-optimised /chat endpoint remains simple, while /chat_optimised uses the fully optimised pipeline with caching and pooling. This avoids mixing logic, prevents return-type mismatches, and makes the codebase easier to extend in the future.
+
+Overall, these optimisations transformed the system from an LLM-heavy, DB-heavy, slow backend into a cache-aware, scalable, and production-grade analytical system. The first request still does the necessary work, but repeated requests are answered in milliseconds instead of seconds. This is exactly how real-world high-performance backend systems are designed and optimised.
+
+
+
+
+
+
+
+Cache behaviour after deployment
+
+Right now, the cache used in the project (INTENT_CACHE) is an in-memory cache. This means it lives inside the Python process memory.
+
+Whether the cache works after deployment depends entirely on how the backend is deployed.
+
+Case 1: Single server, single process
+If the application is deployed on one server with a single Python process (for example running uvicorn main:app without multiple workers), then the cache will work.
+
+Flow is simple: when the server starts, the cache is empty. The first request fills the cache. Repeated requests hit the cache. If the server restarts, the cache is cleared.
+
+This setup is completely fine for development, testing, demos, and small or medium-scale production systems.
+
+Case 2: Single server, multiple workers
+If the application is deployed with multiple workers, for example uvicorn main:app --workers 4, then there are multiple Python processes running.
+
+Each process has its own separate memory, which means each process has its own separate cache. A request handled by one worker fills the cache only in that worker. A request handled by another worker does not see that cache.
+
+In this case, the cache works partially but inconsistently. Cache hits are not guaranteed.
+
+Case 3: Multiple servers
+If the application is deployed across multiple servers behind a load balancer, each server has its own memory and its own cache.
+
+In this setup, the in-memory cache is effectively useless because most requests will hit different servers. Cache hits become rare and unreliable.
+
+Important rule to remember
+An in-memory cache is always process-local. It is fast and simple, but it is not shared across processes, not shared across servers, and it is lost on restart.
+
+Recommended production approach
+For real production deployments, a shared cache such as Redis should be used. Redis allows the cache to be shared across all workers and all servers, provides consistent cache behaviour, and is still very fast.
+
+The current code structure already supports this transition. Later, the in-memory dictionary can be replaced with Redis without changing the core logic.
+
+Final summary
+In-memory cache works only in simple deployments. For serious production deployments, Redis or another shared cache is required. The current implementation is correct and sufficient for now, and migrating later will be straightforward.

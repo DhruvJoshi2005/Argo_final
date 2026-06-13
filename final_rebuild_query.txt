@@ -1,0 +1,28 @@
+TRUNCATE TABLE float_measurements_flat;
+
+INSERT INTO float_measurements_flat (
+    platform_number,
+    cycle_number,
+    juld,
+    latitude,
+    longitude,
+    pressure,
+    temperature,
+    salinity,
+    source_prof_type
+)
+SELECT
+    fc.platform_number::INTEGER,
+    fc.cycle_number,
+    fc.juld,
+    fc.latitude,
+    fc.longitude,
+    fpl.pres,
+    fpl.temp,
+    fpl.psal,
+    fp.profile_type
+FROM float_profile_levels fpl
+JOIN float_profiles fp
+    ON fp.id = fpl.profile_id
+JOIN float_cycles fc
+    ON fc.id = fp.cycle_id;

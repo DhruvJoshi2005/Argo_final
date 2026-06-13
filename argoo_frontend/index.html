@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ARGO AI Comparison</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>ARGO AI Chatbot and Data Syncer</h1>
+
+<!-- 🔥 CENTERED REFRESH -->
+<div class="refresh-wrapper">
+  <div class="refresh-box">
+    <button id="refreshBtn">🔄 Refresh Data</button>
+    <span id="refreshStatus"></span>
+  </div>
+</div>
+
+<!-- 🔥 SPACE BETWEEN REFRESH & CHATS -->
+<div class="chat-container">
+
+  <!-- BEFORE OPTIMISATION -->
+  <div class="chat-box">
+    <h2>Before Optimization</h2>
+
+    <div class="messages" id="chatOld"></div>
+
+    <div class="stats-box" id="statsOld">
+      <h4>📊 Stats</h4>
+      <pre class="stats-content">No stats yet</pre>
+    </div>
+
+    <input id="inputOld" placeholder="Ask something..." />
+    <button onclick="sendChat('old')">Send</button>
+  </div>
+
+  <!-- AFTER OPTIMISATION -->
+  <div class="chat-box">
+    <h2>After Optimization</h2>
+
+    <div class="messages" id="chatNew"></div>
+
+    <div class="stats-box" id="statsNew">
+      <h4>📊 Stats</h4>
+      <pre class="stats-content">No stats yet</pre>
+    </div>
+
+    <input id="inputNew" placeholder="Ask something..." />
+    <button onclick="sendChat('new')">Send</button>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
