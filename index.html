@@ -6,351 +6,1595 @@
   <title>ARGO Ocean Analytics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+
+<style>
+/* =================== VARIABLES =================== */
+:root {
+  --deep:        #010a14;
+  --dark:        #061422;
+  --mid:         #0a1f35;
+  --card:        #0d2640;
+  --border:      rgba(34, 211, 238, 0.15);
+  --border-dim:  rgba(255, 255, 255, 0.07);
+  --teal:        #0891b2;
+  --cyan:        #22d3ee;
+  --bright:      #a5f3fc;
+  --text:        #e0f2fe;
+  --text-muted:  #7bafc8;
+  --text-dim:    #3a6a88;
+  --red:         #f87171;
+  --green:       #34d399;
+  --font:        'Inter', sans-serif;
+  --font-display:'Space Grotesk', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--dark);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* =================== OCEAN CANVAS =================== */
+#ocean-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* =================== BUBBLES =================== */
+.bubbles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.bubble {
+  position: absolute;
+  bottom: -120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.1), transparent 70%);
+  animation: floatUp linear infinite;
+  border: 1px solid rgba(34,211,238,0.08);
+}
+.b1 { width: 80px;  height: 80px;  left: 8%;  animation-duration: 20s; animation-delay: 0s; }
+.b2 { width: 40px;  height: 40px;  left: 22%; animation-duration: 26s; animation-delay: 4s; }
+.b3 { width: 130px; height: 130px; left: 42%; animation-duration: 32s; animation-delay: 9s; }
+.b4 { width: 55px;  height: 55px;  left: 62%; animation-duration: 22s; animation-delay: 14s; }
+.b5 { width: 95px;  height: 95px;  left: 78%; animation-duration: 28s; animation-delay: 6s; }
+.b6 { width: 45px;  height: 45px;  left: 91%; animation-duration: 18s; animation-delay: 11s; }
+.b7 { width: 25px;  height: 25px;  left: 55%; animation-duration: 15s; animation-delay: 3s; }
+.b8 { width: 60px;  height: 60px;  left: 35%; animation-duration: 24s; animation-delay: 18s; }
+
+@keyframes floatUp {
+  0%   { transform: translateY(0) translateX(0) scale(1);   opacity: 0; }
+  8%   { opacity: 0.8; }
+  50%  { transform: translateY(-50vh) translateX(12px) scale(1.05); }
+  92%  { opacity: 0.3; }
+  100% { transform: translateY(-105vh) translateX(-8px) scale(1.3); opacity: 0; }
+}
+
+/* =================== LAYOUT =================== */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.section { padding: 80px 0; position: relative; z-index: 1; }
+.section-alt { background: rgba(4, 14, 28, 0.75); backdrop-filter: blur(2px); }
+
+/* =================== NAV =================== */
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 40px;
+  position: relative;
+  z-index: 10;
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: -0.3px;
+}
+.nav-links { display: flex; gap: 28px; align-items: center; }
+.nav-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--cyan); }
+.nav-cta {
+  padding: 8px 18px;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  border-radius: 8px;
+  color: var(--cyan) !important;
+  background: rgba(34, 211, 238, 0.06);
+  transition: background 0.2s, border-color 0.2s !important;
+}
+.nav-cta:hover {
+  background: rgba(34, 211, 238, 0.14) !important;
+  border-color: var(--cyan) !important;
+}
+
+/* =================== HERO =================== */
+.hero {
+  background: linear-gradient(155deg, #010a14 0%, #021628 35%, #042235 65%, #052e4a 100%);
+  min-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 25% 45%, rgba(8, 145, 178, 0.22) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 65%, rgba(34, 211, 238, 0.11) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(2, 50, 80, 0.8) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Animated water shimmer lines */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 60px,
+    rgba(34, 211, 238, 0.012) 60px,
+    rgba(34, 211, 238, 0.012) 61px
+  );
+  animation: shimmerDrift 8s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes shimmerDrift {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-20px); }
+}
+
+.hero-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 24px 130px;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-badge {
+  display: inline-block;
+  padding: 7px 20px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--cyan);
+  background: rgba(34, 211, 238, 0.06);
+  margin-bottom: 32px;
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(34,211,238,0); }
+  50%       { box-shadow: 0 0 22px rgba(34,211,238,0.18); }
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 8vw, 5.8rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -2.5px;
+  color: #f0f9ff;
+  margin-bottom: 24px;
+  text-shadow: 0 0 80px rgba(34,211,238,0.15);
+}
+
+.accent { color: var(--cyan); }
+
+.hero-sub {
+  font-size: clamp(0.95rem, 2.2vw, 1.15rem);
+  color: var(--text-muted);
+  max-width: 540px;
+  margin-bottom: 40px;
+  line-height: 1.75;
+}
+
+.hero-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+
+.btn-primary {
+  display: inline-block;
+  padding: 14px 30px;
+  background: linear-gradient(135deg, #0891b2, #22d3ee);
+  color: #010a14;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 28px rgba(34, 211, 238, 0.28);
+  letter-spacing: 0.2px;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 44px rgba(34, 211, 238, 0.55);
+}
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  display: inline-block;
+  padding: 14px 30px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  color: var(--cyan);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(34, 211, 238, 0.04);
+}
+.btn-ghost:hover {
+  background: rgba(34, 211, 238, 0.12);
+  border-color: var(--cyan);
+}
+
+/* Multi-wave hero footer */
+.hero-waves {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  z-index: 1;
+}
+.hero-waves svg { display: block; width: 100%; }
+
+/* =================== DEPTH METER (decorative) =================== */
+.depth-strip {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(to bottom, rgba(0,15,30,0.0), rgba(0,20,40,0.9));
+  padding: 20px 0 0;
+  overflow: hidden;
+}
+.depth-strip::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  animation: scanLine 4s ease-in-out infinite;
+}
+@keyframes scanLine {
+  0%   { opacity: 0.3; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+
+/* =================== SECTION LABELS =================== */
+.section-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 12px;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1.15;
+  color: #f0f9ff;
+  margin-bottom: 16px;
+}
+.section-sub {
+  color: var(--text-muted);
+  font-size: 1rem;
+  max-width: 620px;
+  margin-bottom: 52px;
+  line-height: 1.75;
+}
+
+/* =================== ABOUT CARDS =================== */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 18px;
+  margin-bottom: 48px;
+}
+.card {
+  background: rgba(6, 22, 44, 0.75);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  transition: transform 0.22s, border-color 0.22s, box-shadow 0.22s;
+  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+}
+.card::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: radial-gradient(circle at 50% 50%, rgba(34,211,238,0.04) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.card:hover::after { opacity: 1; }
+.card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(34, 211, 238, 0.45);
+  box-shadow: 0 8px 40px rgba(34, 211, 238, 0.1), 0 0 0 1px rgba(34,211,238,0.05);
+}
+.card-icon { font-size: 2rem; margin-bottom: 14px; }
+.card h3 { font-size: 1rem; font-weight: 600; color: #f0f9ff; margin-bottom: 10px; }
+.card p  { font-size: 0.875rem; color: var(--text-muted); line-height: 1.68; }
+
+/* =================== IMPACT BAR =================== */
+.impact-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  background: rgba(6, 20, 40, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 16px;
+  gap: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgba(34,211,238,0.08);
+}
+.impact-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 36px;
+  gap: 4px;
+}
+.impact-num {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--cyan);
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(34,211,238,0.4);
+}
+.impact-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+.impact-divider {
+  width: 1px;
+  height: 44px;
+  background: rgba(34, 211, 238, 0.18);
+  flex-shrink: 0;
+}
+
+/* =================== FLOAT MAP SECTION =================== */
+.map-section {
+  padding: 80px 0;
+  position: relative;
+  z-index: 1;
+  background: rgba(2,10,22,0.85);
+}
+.map-wrapper {
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(34,211,238,0.2);
+  box-shadow: 0 0 60px rgba(34,211,238,0.08), 0 20px 60px rgba(0,0,0,0.5);
+  position: relative;
+}
+.map-wrapper img {
+  width: 100%;
+  display: block;
+  filter: saturate(1.1) brightness(0.95);
+}
+.map-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,10,20,0.35) 0%,
+    transparent 30%,
+    transparent 70%,
+    rgba(0,10,20,0.6) 100%
+  );
+  pointer-events: none;
+}
+.map-label {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 20px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.map-label-text {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--bright);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+.map-label-sub {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+.map-source-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: rgba(34,211,238,0.12);
+  border: 1px solid rgba(34,211,238,0.35);
+  border-radius: 8px;
+  color: var(--cyan);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+.map-source-btn:hover {
+  background: rgba(34,211,238,0.22);
+  border-color: var(--cyan);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(34,211,238,0.2);
+}
+
+/* =================== FEATURES =================== */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+.feature-card {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  background: rgba(6, 20, 42, 0.65);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  backdrop-filter: blur(6px);
+}
+.feature-card:hover {
+  border-color: rgba(34, 211, 238, 0.35);
+  box-shadow: 0 4px 24px rgba(34, 211, 238, 0.07);
+  transform: translateY(-2px);
+}
+.feature-icon { font-size: 1.7rem; flex-shrink: 0; margin-top: 2px; }
+.feature-body h3 { font-size: 0.97rem; font-weight: 600; color: #f0f9ff; margin-bottom: 8px; }
+.feature-body p  { font-size: 0.855rem; color: var(--text-muted); line-height: 1.68; }
+
+/* =================== DATA SOURCE CALLOUT =================== */
+.datasource-strip {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 24px 0;
+  background: linear-gradient(90deg, rgba(8,145,178,0.08) 0%, rgba(34,211,238,0.05) 50%, rgba(8,145,178,0.08) 100%);
+  border-top: 1px solid rgba(34,211,238,0.12);
+  border-bottom: 1px solid rgba(34,211,238,0.12);
+}
+.datasource-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.datasource-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.datasource-icon {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 0 8px rgba(34,211,238,0.4));
+}
+.datasource-text h4 {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f0f9ff;
+  margin-bottom: 2px;
+}
+.datasource-text p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.datasource-url {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(34,211,238,0.08);
+  border: 1px solid rgba(34,211,238,0.28);
+  border-radius: 10px;
+  color: var(--cyan);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  transition: all 0.2s;
+  word-break: break-all;
+}
+.datasource-url:hover {
+  background: rgba(34,211,238,0.16);
+  border-color: var(--cyan);
+  box-shadow: 0 0 20px rgba(34,211,238,0.18);
+}
+
+/* =================== QUERY CHIPS =================== */
+.queries-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(275px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.query-chip {
+  background: rgba(6, 20, 42, 0.7);
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: 12px;
+  color: var(--text);
+  padding: 15px 18px;
+  font-size: 0.875rem;
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1.5;
+  backdrop-filter: blur(4px);
+}
+.query-chip:hover {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: var(--cyan);
+  color: var(--bright);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(34,211,238,0.1);
+}
+.query-chip.active {
+  background: rgba(34, 211, 238, 0.14);
+  border-color: var(--cyan);
+  color: var(--bright);
+}
+
+.send-both-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.send-both-hint {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+/* =================== COMPARISON =================== */
+.compare-wrapper {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.compare-card {
+  flex: 1;
+  min-width: 290px;
+  border-radius: 16px;
+  padding: 28px;
+  border: 1px solid;
+  backdrop-filter: blur(6px);
+}
+.compare-bad {
+  background: rgba(60, 10, 10, 0.15);
+  border-color: rgba(248, 113, 113, 0.22);
+}
+.compare-good {
+  background: rgba(3, 42, 30, 0.18);
+  border-color: rgba(52, 211, 153, 0.22);
+}
+.compare-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.compare-header h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #f0f9ff;
+}
+.compare-header code {
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+}
+.compare-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-bottom: 24px;
+}
+.compare-list li {
+  display: flex;
+  gap: 10px;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.compare-list code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+}
+.x     { color: var(--red);   flex-shrink: 0; font-weight: 700; }
+.check { color: var(--green); flex-shrink: 0; font-weight: 700; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dot-red   { background: var(--red);   box-shadow: 0 0 8px rgba(248,113,113,0.6); }
+.dot-green { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.6); }
+.compare-perf {
+  padding: 14px 18px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bad-perf  { background: rgba(100, 20, 20, 0.3); }
+.good-perf { background: rgba(5, 60, 45, 0.3); }
+.perf-label { font-size: 0.78rem; color: var(--text-muted); }
+.perf-val {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #f0f9ff;
+}
+.compare-vs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+/* =================== CHAT WRAPPER =================== */
+.chat-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.chat-panel {
+  border-radius: 16px;
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  background: rgba(4, 14, 28, 0.9);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+}
+.panel-bad  { border-color: rgba(248, 113, 113, 0.22); }
+.panel-good { border-color: rgba(52,  211, 153, 0.22); }
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-dim);
+  background: rgba(255, 255, 255, 0.025);
+  flex-shrink: 0;
+}
+.panel-header-left { display: flex; align-items: center; gap: 12px; }
+.panel-header h3  { font-size: 0.95rem; font-weight: 600; color: #f0f9ff; margin-bottom: 2px; }
+.panel-endpoint   { font-size: 0.72rem; color: var(--text-dim); font-family: 'Courier New', monospace; }
+.status-dot       { display: block; width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.panel-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+.badge-slow { background: rgba(248,113,113,0.12); color: var(--red);   border: 1px solid rgba(248,113,113,0.28); }
+.badge-fast { background: rgba(52,211,153,0.12);  color: var(--green); border: 1px solid rgba(52,211,153,0.28); }
+
+/* =================== MESSAGES =================== */
+.messages {
+  flex: 1;
+  min-height: 220px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-behavior: smooth;
+}
+.messages::-webkit-scrollbar { width: 4px; }
+.messages::-webkit-scrollbar-thumb { background: rgba(34, 211, 238, 0.18); border-radius: 2px; }
+.empty-state {
+  color: var(--text-dim);
+  font-size: 0.83rem;
+  text-align: center;
+  padding: 36px 0;
+  font-style: italic;
+}
+.msg-user {
+  align-self: flex-end;
+  max-width: 88%;
+  padding: 9px 13px;
+  border-radius: 12px 12px 4px 12px;
+  background: rgba(8, 145, 178, 0.2);
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  color: var(--bright);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.msg-bot {
+  align-self: flex-start;
+  max-width: 88%;
+  padding: 9px 13px;
+  border-radius: 12px 12px 12px 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-dim);
+  color: var(--text);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.msg-error {
+  align-self: flex-start;
+  max-width: 88%;
+  padding: 9px 13px;
+  border-radius: 12px 12px 12px 4px;
+  background: rgba(100, 20, 20, 0.2);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  color: var(--red);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.msg-loading {
+  align-self: flex-start;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 10px 14px;
+}
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  animation: blink 1.2s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0.15; transform: scale(0.85); }
+  40%           { opacity: 1;    transform: scale(1); }
+}
+
+/* =================== STATS BOX =================== */
+.stats-box {
+  background: rgba(1, 8, 18, 0.95);
+  border-top: 1px solid var(--border-dim);
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.4px;
+}
+.clear-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: color 0.2s, background 0.2s;
+}
+.clear-btn:hover { color: var(--text-muted); background: rgba(255,255,255,0.05); }
+.stats-content {
+  font-size: 0.77rem;
+  color: #3d7a98;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 120px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+  line-height: 1.65;
+}
+.stats-content::-webkit-scrollbar { width: 3px; }
+.stats-content::-webkit-scrollbar-thumb { background: rgba(34,211,238,0.12); }
+
+/* =================== INPUT ROW =================== */
+.input-row {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border-dim);
+  flex-shrink: 0;
+}
+.input-row input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 13px;
+  font-size: 0.875rem;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 0;
+}
+.input-row input:focus { border-color: rgba(34, 211, 238, 0.4); box-shadow: 0 0 0 3px rgba(34,211,238,0.07); }
+.input-row input::placeholder { color: var(--text-dim); }
+.send-btn {
+  background: linear-gradient(135deg, #0891b2, #22d3ee);
+  color: #010a14;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.send-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(34,211,238,0.35); }
+.send-btn:active { transform: translateY(0); }
+
+/* =================== FOOTER =================== */
+.footer {
+  background: #010a14;
+  border-top: 1px solid rgba(34, 211, 238, 0.1);
+  padding: 52px 0 28px;
+  position: relative;
+  z-index: 1;
+}
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.footer-logo {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--cyan);
+  margin-bottom: 10px;
+}
+.footer-left p { font-size: 0.85rem; color: var(--text-muted); max-width: 320px; line-height: 1.65; }
+.footer-stack { display: flex; flex-wrap: wrap; gap: 8px; }
+.footer-stack span {
+  font-size: 0.74rem;
+  padding: 5px 13px;
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: 100px;
+  color: var(--text-muted);
+}
+.footer-data-source {
+  margin-top: 14px;
+}
+.footer-data-source a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cyan);
+  text-decoration: none;
+  font-size: 0.8rem;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+.footer-data-source a:hover { opacity: 1; }
+.footer-bottom {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding-top: 22px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.footer-bottom a {
+  color: rgba(34,211,238,0.6);
+  text-decoration: none;
+  font-family: 'Courier New', monospace;
+  font-size: 0.76rem;
+  transition: color 0.2s;
+}
+.footer-bottom a:hover { color: var(--cyan); }
+
+/* =================== RESPONSIVE =================== */
+@media (max-width: 960px) {
+  .chat-wrapper    { grid-template-columns: 1fr; }
+  .compare-wrapper { flex-direction: column; }
+  .compare-vs      { display: none; }
+  .nav-links       { display: none; }
+  .impact-item     { padding: 0 20px; }
+  .impact-divider  { height: 36px; }
+  .datasource-inner { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 640px) {
+  .section { padding: 56px 0; }
+  .hero-content { padding: 40px 16px 110px; }
+  .hero-title { letter-spacing: -1.5px; }
+  .cards-grid    { grid-template-columns: 1fr; }
+  .features-grid { grid-template-columns: 1fr; }
+  .queries-grid  { grid-template-columns: 1fr; }
+  .impact-bar     { flex-direction: column; gap: 20px; padding: 24px 16px; }
+  .impact-divider { width: 80px; height: 1px; }
+  .send-both-row  { flex-direction: column; align-items: flex-start; }
+  .hero-actions   { flex-direction: column; width: 100%; }
+  .btn-primary, .btn-ghost { width: 100%; text-align: center; }
+  .nav { padding: 16px 20px; }
+  .messages { max-height: 240px; }
+  .footer-content { flex-direction: column; }
+  .compare-card { min-width: unset; }
+  .perf-val { font-size: 0.82rem; }
+  .map-label { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 400px) {
+  .hero-title { font-size: 2.4rem; }
+  .panel-header { flex-wrap: wrap; gap: 8px; }
+  .panel-badge  { align-self: flex-end; }
+}
+</style>
 </head>
 <body>
 
-  <!-- Background bubbles -->
-  <div class="bubbles" aria-hidden="true">
-    <div class="bubble b1"></div>
-    <div class="bubble b2"></div>
-    <div class="bubble b3"></div>
-    <div class="bubble b4"></div>
-    <div class="bubble b5"></div>
-    <div class="bubble b6"></div>
+<!-- =================== OCEAN CANVAS =================== -->
+<canvas id="ocean-canvas"></canvas>
+
+<!-- =================== BUBBLES =================== -->
+<div class="bubbles" aria-hidden="true">
+  <div class="bubble b1"></div>
+  <div class="bubble b2"></div>
+  <div class="bubble b3"></div>
+  <div class="bubble b4"></div>
+  <div class="bubble b5"></div>
+  <div class="bubble b6"></div>
+  <div class="bubble b7"></div>
+  <div class="bubble b8"></div>
+</div>
+
+<!-- =================== HERO =================== -->
+<header class="hero">
+  <nav class="nav">
+    <div class="nav-logo">🌊 ARGO Analytics</div>
+    <div class="nav-links">
+      <a href="#about">About</a>
+      <a href="#floatmap">Float Map</a>
+      <a href="#features">Features</a>
+      <a href="#queries">Queries</a>
+      <a href="#comparison">How It Works</a>
+      <a href="#chat" class="nav-cta">Try It →</a>
+    </div>
+  </nav>
+
+  <div class="hero-content">
+    <div class="hero-badge">🤖 AI-Powered &nbsp;·&nbsp; 5.7M+ Measurements &nbsp;·&nbsp; Real Argo Data</div>
+    <h1 class="hero-title">Ask the <span class="accent">Ocean</span><br/>Anything</h1>
+    <p class="hero-sub">
+      Natural language queries over real Argo float measurements —
+      temperature, salinity, oxygen, chlorophyll, pH and more across
+      every major ocean basin.
+    </p>
+    <div class="hero-actions">
+      <a href="#chat" class="btn-primary">Try the Chat →</a>
+      <a href="#about" class="btn-ghost">Learn About Argo</a>
+    </div>
   </div>
 
-  <!-- =================== HERO =================== -->
-  <header class="hero">
-    <nav class="nav">
-      <div class="nav-logo">🌊 ARGO Analytics</div>
-      <div class="nav-links">
-        <a href="#about">About</a>
-        <a href="#features">Features</a>
-        <a href="#queries">Queries</a>
-        <a href="#comparison">How It Works</a>
-        <a href="#chat" class="nav-cta">Try It →</a>
-      </div>
-    </nav>
+  <div class="hero-waves">
+    <svg viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,60 C180,100 360,20 540,55 C720,90 900,15 1080,50 C1260,85 1380,30 1440,45 L1440,120 L0,120 Z" fill="rgba(0,10,22,0.6)"/>
+      <path d="M0,80 C200,40 400,90 600,65 C800,40 1000,85 1200,60 C1320,45 1400,70 1440,75 L1440,120 L0,120 Z" fill="rgba(0,8,18,0.85)"/>
+      <path d="M0,95 C300,70 600,110 900,88 C1100,72 1300,100 1440,90 L1440,120 L0,120 Z" fill="#061422"/>
+    </svg>
+  </div>
+</header>
 
-    <div class="hero-content">
-      <div class="hero-badge">🤖 AI-Powered &nbsp;·&nbsp; 5.7M+ Measurements &nbsp;·&nbsp; Real Argo Data</div>
-      <h1 class="hero-title">Ask the <span class="accent">Ocean</span><br/>Anything</h1>
-      <p class="hero-sub">
-        Natural language queries over real Argo float measurements —
-        temperature, salinity, oxygen, chlorophyll, pH and more across
-        every major ocean basin.
-      </p>
-      <div class="hero-actions">
-        <a href="#chat" class="btn-primary">Try the Chat →</a>
-        <a href="#about" class="btn-ghost">Learn About Argo</a>
+<!-- =================== DATA SOURCE STRIP =================== -->
+<div class="datasource-strip">
+  <div class="datasource-inner">
+    <div class="datasource-left">
+      <div class="datasource-icon">🛰️</div>
+      <div class="datasource-text">
+        <h4>Live Data Source — INCOIS Argo Data Centre</h4>
+        <p>NetCDF float profiles fetched directly from the Indian National Centre for Ocean Information Services</p>
+      </div>
+    </div>
+    <a href="https://data-argo.ifremer.fr/dac/incois/?C=M;O=D" target="_blank" rel="noopener" class="datasource-url">
+      🔗 data-argo.ifremer.fr/dac/incois/
+    </a>
+  </div>
+</div>
+
+<!-- =================== ABOUT ARGO =================== -->
+<section class="section" id="about">
+  <div class="container">
+    <div class="section-label">About the Data</div>
+    <h2 class="section-title">What is <span class="accent">Argo</span>?</h2>
+    <p class="section-sub">
+      Argo is an international scientific program that maintains ~4,000 autonomous robotic floats
+      deployed across the world's oceans. Every 10 days each float dives to 2,000 metres,
+      profiles the water column as it rises, then transmits data via satellite —
+      giving scientists an unprecedented real-time picture of ocean health.
+    </p>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon">🤿</div>
+        <h3>4,000+ Active Floats</h3>
+        <p>Autonomous profiling floats deployed across every major ocean basin. Each float drifts with currents, dives to 2,000 m on a 10-day cycle, and surfaces to transmit.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌡️</div>
+        <h3>Multi-Parameter Sensing</h3>
+        <p>Core floats measure temperature, salinity, and pressure. BGC-Argo floats add dissolved oxygen, chlorophyll-a, optical backscatter, and pH — critical for biological oceanography.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🛰️</div>
+        <h3>Satellite Data Relay</h3>
+        <p>After surfacing, floats transmit to global data centres — INCOIS, Coriolis, AOML, BODC — within hours. This project ingests INCOIS Argo data directly.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌍</div>
+        <h3>Global Scientific Impact</h3>
+        <p>Argo data underpins IPCC climate assessments, hurricane intensity forecasting, fisheries management, sea-level studies, and carbon cycle research worldwide.</p>
       </div>
     </div>
 
-    <div class="hero-wave">
-      <svg viewBox="0 0 1440 90" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,30 C240,80 480,0 720,45 C960,90 1200,10 1440,55 L1440,90 L0,90 Z" fill="#061422"/>
-      </svg>
-    </div>
-  </header>
-
-  <!-- =================== ABOUT ARGO =================== -->
-  <section class="section" id="about">
-    <div class="container">
-      <div class="section-label">About the Data</div>
-      <h2 class="section-title">What is <span class="accent">Argo</span>?</h2>
-      <p class="section-sub">
-        Argo is an international scientific program that maintains ~4,000 autonomous robotic floats
-        deployed across the world's oceans. Every 10 days each float dives to 2,000 metres,
-        profiles the water column as it rises, then transmits data via satellite —
-        giving scientists an unprecedented real-time picture of ocean health.
-      </p>
-
-      <div class="cards-grid">
-        <div class="card">
-          <div class="card-icon">🤿</div>
-          <h3>4,000+ Active Floats</h3>
-          <p>Autonomous profiling floats deployed across every major ocean basin. Each float drifts with currents, dives to 2,000 m on a 10-day cycle, and surfaces to transmit.</p>
-        </div>
-        <div class="card">
-          <div class="card-icon">🌡️</div>
-          <h3>Multi-Parameter Sensing</h3>
-          <p>Core floats measure temperature, salinity, and pressure. BGC-Argo floats add dissolved oxygen, chlorophyll-a, optical backscatter, and pH — critical for biological oceanography.</p>
-        </div>
-        <div class="card">
-          <div class="card-icon">🛰️</div>
-          <h3>Satellite Data Relay</h3>
-          <p>After surfacing, floats transmit to global data centres — INCOIS, Coriolis, AOML, BODC — within hours. This project ingests INCOIS Argo data directly.</p>
-        </div>
-        <div class="card">
-          <div class="card-icon">🌍</div>
-          <h3>Global Scientific Impact</h3>
-          <p>Argo data underpins IPCC climate assessments, hurricane intensity forecasting, fisheries management, sea-level studies, and carbon cycle research worldwide.</p>
-        </div>
+    <div class="impact-bar">
+      <div class="impact-item">
+        <span class="impact-num">5.7M+</span>
+        <span class="impact-label">Measurements</span>
       </div>
-
-      <div class="impact-bar">
-        <div class="impact-item">
-          <span class="impact-num">5.7M+</span>
-          <span class="impact-label">Measurements</span>
-        </div>
-        <div class="impact-divider"></div>
-        <div class="impact-item">
-          <span class="impact-num">7</span>
-          <span class="impact-label">Parameters</span>
-        </div>
-        <div class="impact-divider"></div>
-        <div class="impact-item">
-          <span class="impact-num">8</span>
-          <span class="impact-label">Ocean Regions</span>
-        </div>
-        <div class="impact-divider"></div>
-        <div class="impact-item">
-          <span class="impact-num">AI</span>
-          <span class="impact-label">Powered Queries</span>
-        </div>
+      <div class="impact-divider"></div>
+      <div class="impact-item">
+        <span class="impact-num">7</span>
+        <span class="impact-label">Parameters</span>
+      </div>
+      <div class="impact-divider"></div>
+      <div class="impact-item">
+        <span class="impact-num">8</span>
+        <span class="impact-label">Ocean Regions</span>
+      </div>
+      <div class="impact-divider"></div>
+      <div class="impact-item">
+        <span class="impact-num">3,881</span>
+        <span class="impact-label">Operational Floats</span>
+      </div>
+      <div class="impact-divider"></div>
+      <div class="impact-item">
+        <span class="impact-num">AI</span>
+        <span class="impact-label">Powered Queries</span>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- =================== FEATURES =================== -->
-  <section class="section section-alt" id="features">
-    <div class="container">
-      <div class="section-label">What This Project Offers</div>
-      <h2 class="section-title">Ocean Data,<br/><span class="accent">Plain English</span></h2>
+<!-- =================== FLOAT MAP =================== -->
+<section class="map-section" id="floatmap">
+  <div class="container">
+    <div class="section-label">Global Float Distribution</div>
+    <h2 class="section-title">Where the <span class="accent">Floats Are</span></h2>
+    <p class="section-sub">
+      3,881 operational floats colour-coded by contributing nation — February 2018. The USA leads with 2,179 floats, followed by France (277), Australia (361), Japan (156), and 20+ other countries.
+    </p>
 
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">💬</div>
-          <div class="feature-body">
-            <h3>Natural Language Querying</h3>
-            <p>Ask "What is the average temperature at the equator?" — GPT-4.1-mini extracts your intent and the backend builds exact SQL automatically. No query syntax needed.</p>
-          </div>
+    <div class="map-wrapper">
+      <img src="Argo_floats_in_Feb__2018_colour_coded_by_country.png"
+           alt="Argo float distribution map — 3881 operational floats, February 2018, colour coded by country"
+           loading="lazy" />
+      <div class="map-overlay"></div>
+      <div class="map-label">
+        <div>
+          <div class="map-label-text">3,881 Operational Floats · February 2018</div>
+          <div class="map-label-sub">Latest positions of active floats (data distributed within last 30 days) · Source: jcommops.org</div>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">⚡</div>
-          <div class="feature-body">
-            <h3>LRU Intent Caching</h3>
-            <p>Repeated or similar questions skip the LLM entirely and return from an in-memory LRU cache. Cache hits answer in under 5 ms — zero API cost, zero latency.</p>
-          </div>
+        <a href="https://data-argo.ifremer.fr/dac/incois/?C=M;O=D" target="_blank" rel="noopener" class="map-source-btn">
+          🗄️ Browse Raw Data →
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================== FEATURES =================== -->
+<section class="section section-alt" id="features">
+  <div class="container">
+    <div class="section-label">What This Project Offers</div>
+    <h2 class="section-title">Ocean Data,<br/><span class="accent">Plain English</span></h2>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <div class="feature-body">
+          <h3>Natural Language Querying</h3>
+          <p>Ask "What is the average temperature at the equator?" — GPT-4.1-mini extracts your intent and the backend builds exact SQL automatically. No query syntax needed.</p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">🔗</div>
-          <div class="feature-body">
-            <h3>Threaded Connection Pool</h3>
-            <p>10 pre-warmed PostgreSQL connections reused across all requests. No TCP handshake per query — concurrent users are handled safely with thread locking.</p>
-          </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-body">
+          <h3>LRU Intent Caching</h3>
+          <p>Repeated or similar questions skip the LLM entirely and return from an in-memory LRU cache. Cache hits answer in under 5 ms — zero API cost, zero latency.</p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">🗺️</div>
-          <div class="feature-body">
-            <h3>8 Ocean Regions</h3>
-            <p>Ask about the Equator, Tropic of Cancer/Capricorn, Pacific, Atlantic, Indian, Southern, or Arctic Ocean — bounding-box filters applied automatically from your words.</p>
-          </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔗</div>
+        <div class="feature-body">
+          <h3>Threaded Connection Pool</h3>
+          <p>10 pre-warmed PostgreSQL connections reused across all requests. No TCP handshake per query — concurrent users are handled safely with thread locking.</p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">🧪</div>
-          <div class="feature-body">
-            <h3>BGC-Argo Bio Parameters</h3>
-            <p>Query dissolved oxygen, chlorophyll-a, optical backscatter (bbp700), and pH alongside core Argo params. 643K+ oxygen measurements, 592K+ chlorophyll readings included.</p>
-          </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <div class="feature-body">
+          <h3>8 Ocean Regions</h3>
+          <p>Ask about the Equator, Tropic of Cancer/Capricorn, Pacific, Atlantic, Indian, Southern, or Arctic Ocean — bounding-box filters applied automatically from your words.</p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">📊</div>
-          <div class="feature-body">
-            <h3>Live Performance Metrics</h3>
-            <p>Every response returns intent_ms, sql_ms, total_ms, and a cache_hit flag — watch exactly where time is spent (or saved) in real time below each answer.</p>
-          </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧪</div>
+        <div class="feature-body">
+          <h3>BGC-Argo Bio Parameters</h3>
+          <p>Query dissolved oxygen, chlorophyll-a, optical backscatter (bbp700), and pH alongside core Argo params. 643K+ oxygen measurements, 592K+ chlorophyll readings included.</p>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-body">
+          <h3>Live Performance Metrics</h3>
+          <p>Every response returns intent_ms, sql_ms, total_ms, and a cache_hit flag — watch exactly where time is spent (or saved) in real time below each answer.</p>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- =================== SAMPLE QUERIES =================== -->
-  <section class="section" id="queries">
-    <div class="container">
-      <div class="section-label">Try It Yourself</div>
-      <h2 class="section-title">Sample <span class="accent">Queries</span></h2>
-      <p class="section-sub">
-        Click any query to fill both chat panels with the same question — then hit
-        <strong>Send to Both</strong> to compare performance side by side.
-      </p>
+<!-- =================== SAMPLE QUERIES =================== -->
+<section class="section" id="queries">
+  <div class="container">
+    <div class="section-label">Try It Yourself</div>
+    <h2 class="section-title">Sample <span class="accent">Queries</span></h2>
+    <p class="section-sub">
+      Click any query to fill both chat panels with the same question — then hit
+      <strong>Send to Both</strong> to compare performance side by side.
+    </p>
 
-      <div class="queries-grid">
-        <button class="query-chip" onclick="fillBoth(this.textContent)">What is the average temperature at the equator?</button>
-        <button class="query-chip" onclick="fillBoth(this.textContent)">What is the maximum salinity in the Indian Ocean?</button>
-        <button class="query-chip" onclick="fillBoth(this.textContent)">What is the minimum pressure in the Southern Ocean?</button>
-        <button class="query-chip" onclick="fillBoth(this.textContent)">What is the average salinity at the equator?</button>
-      </div>
-
-      <div class="send-both-row">
-        <button class="btn-primary" onclick="sendBoth()">⚡ Send to Both Panels</button>
-        <span class="send-both-hint">Sends the same query to both chats simultaneously</span>
-      </div>
+    <div class="queries-grid">
+      <button class="query-chip" onclick="fillBoth(this.textContent, event)">What is the average temperature at the equator?</button>
+      <button class="query-chip" onclick="fillBoth(this.textContent, event)">What is the maximum salinity in the Indian Ocean?</button>
+      <button class="query-chip" onclick="fillBoth(this.textContent, event)">What is the minimum pressure in the Southern Ocean?</button>
+      <button class="query-chip" onclick="fillBoth(this.textContent, event)">What is the average salinity at the equator?</button>
     </div>
-  </section>
 
-  <!-- =================== COMPARISON =================== -->
-  <section class="section section-alt" id="comparison">
-    <div class="container">
-      <div class="section-label">Under the Hood</div>
-      <h2 class="section-title">Optimised vs <span class="accent">Unoptimised</span></h2>
-      <p class="section-sub">
-        Both panels return the same correct answer. The difference is every architectural
-        decision made along the way.
-      </p>
+    <div class="send-both-row">
+      <button class="btn-primary" onclick="sendBoth()">⚡ Send to Both Panels</button>
+      <span class="send-both-hint">Sends the same query to both chats simultaneously</span>
+    </div>
+  </div>
+</section>
 
-      <div class="compare-wrapper">
-        <div class="compare-card compare-bad">
-          <div class="compare-header">
-            <span class="dot dot-red"></span>
-            <h3>🐌 Unoptimised &nbsp;<code>/chat</code></h3>
-          </div>
-          <ul class="compare-list">
-            <li><span class="x">✗</span> New OpenAI client object created on every single request</li>
-            <li><span class="x">✗</span> <code>.env</code> file re-read from disk inside every helper function</li>
-            <li><span class="x">✗</span> LLM called every time — no caching, identical questions hit the API again</li>
-            <li><span class="x">✗</span> Two separate DB connections opened per request (table-check + query)</li>
-            <li><span class="x">✗</span> Fetches ALL matching rows into Python RAM</li>
-            <li><span class="x">✗</span> AVG / MIN / MAX computed in a Python loop — not in the database</li>
-            <li><span class="x">✗</span> No SQL result cache — every identical query re-hits the database</li>
-          </ul>
-          <div class="compare-perf bad-perf">
-            <span class="perf-label">Typical latency</span>
-            <span class="perf-val">3,000 – 8,000 ms</span>
-          </div>
+<!-- =================== COMPARISON =================== -->
+<section class="section section-alt" id="comparison">
+  <div class="container">
+    <div class="section-label">Under the Hood</div>
+    <h2 class="section-title">Optimised vs <span class="accent">Unoptimised</span></h2>
+    <p class="section-sub">
+      Both panels return the same correct answer. The difference is every architectural
+      decision made along the way.
+    </p>
+
+    <div class="compare-wrapper">
+      <div class="compare-card compare-bad">
+        <div class="compare-header">
+          <span class="dot dot-red"></span>
+          <h3>🐌 Unoptimised &nbsp;<code>/chat</code></h3>
         </div>
-
-        <div class="compare-vs">VS</div>
-
-        <div class="compare-card compare-good">
-          <div class="compare-header">
-            <span class="dot dot-green"></span>
-            <h3>⚡ Optimised &nbsp;<code>/chat_optimised</code></h3>
-          </div>
-          <ul class="compare-list">
-            <li><span class="check">✓</span> Single OpenAI client instantiated once at startup, reused forever</li>
-            <li><span class="check">✓</span> Config loaded once — no repeated disk reads</li>
-            <li><span class="check">✓</span> LRU intent cache (500 entries) — repeated questions skip the LLM entirely</li>
-            <li><span class="check">✓</span> ThreadedConnectionPool — connection borrowed in microseconds, not created</li>
-            <li><span class="check">✓</span> DB computes <code>AVG()</code>/<code>MIN()</code>/<code>MAX()</code> — one number sent back</li>
-            <li><span class="check">✓</span> LRU SQL cache (200 entries) — identical queries return instantly from memory</li>
-            <li><span class="check">✓</span> NULL filter on bio columns avoids scanning irrelevant rows</li>
-          </ul>
-          <div class="compare-perf good-perf">
-            <span class="perf-label">Typical latency</span>
-            <span class="perf-val">200 – 800 ms &nbsp;&nbsp;(cache hit: &lt;5 ms)</span>
-          </div>
+        <ul class="compare-list">
+          <li><span class="x">✗</span> New OpenAI client object created on every single request</li>
+          <li><span class="x">✗</span> <code>.env</code> file re-read from disk inside every helper function</li>
+          <li><span class="x">✗</span> LLM called every time — no caching, identical questions hit the API again</li>
+          <li><span class="x">✗</span> Two separate DB connections opened per request (table-check + query)</li>
+          <li><span class="x">✗</span> Fetches ALL matching rows into Python RAM</li>
+          <li><span class="x">✗</span> AVG / MIN / MAX computed in a Python loop — not in the database</li>
+          <li><span class="x">✗</span> No SQL result cache — every identical query re-hits the database</li>
+        </ul>
+        <div class="compare-perf bad-perf">
+          <span class="perf-label">Typical latency</span>
+          <span class="perf-val">3,000 – 8,000 ms</span>
         </div>
       </div>
+
+      <div class="compare-vs">VS</div>
+
+      <div class="compare-card compare-good">
+        <div class="compare-header">
+          <span class="dot dot-green"></span>
+          <h3>⚡ Optimised &nbsp;<code>/chat_optimised</code></h3>
+        </div>
+        <ul class="compare-list">
+          <li><span class="check">✓</span> Single OpenAI client instantiated once at startup, reused forever</li>
+          <li><span class="check">✓</span> Config loaded once — no repeated disk reads</li>
+          <li><span class="check">✓</span> LRU intent cache (500 entries) — repeated questions skip the LLM entirely</li>
+          <li><span class="check">✓</span> ThreadedConnectionPool — connection borrowed in microseconds, not created</li>
+          <li><span class="check">✓</span> DB computes <code>AVG()</code>/<code>MIN()</code>/<code>MAX()</code> — one number sent back</li>
+          <li><span class="check">✓</span> LRU SQL cache (200 entries) — identical queries return instantly from memory</li>
+          <li><span class="check">✓</span> NULL filter on bio columns avoids scanning irrelevant rows</li>
+        </ul>
+        <div class="compare-perf good-perf">
+          <span class="perf-label">Typical latency</span>
+          <span class="perf-val">200 – 800 ms &nbsp;&nbsp;(cache hit: &lt;5 ms)</span>
+        </div>
+      </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- =================== CHAT =================== -->
-  <section class="section" id="chat">
-    <div class="container">
-      <div class="section-label">Live Demo</div>
-      <h2 class="section-title">Ask the <span class="accent">Ocean</span></h2>
-      <p class="section-sub">
-        Type the same question in both panels and watch the performance difference in real time.
-        Try asking the same question twice in the optimised panel to see the cache kick in.
-      </p>
+<!-- =================== CHAT =================== -->
+<section class="section" id="chat">
+  <div class="container">
+    <div class="section-label">Live Demo</div>
+    <h2 class="section-title">Ask the <span class="accent">Ocean</span></h2>
+    <p class="section-sub">
+      Type the same question in both panels and watch the performance difference in real time.
+      Try asking the same question twice in the optimised panel to see the cache kick in.
+    </p>
 
-      <div class="chat-wrapper">
+    <div class="chat-wrapper">
 
-        <!-- UNOPTIMISED PANEL -->
-        <div class="chat-panel panel-bad">
-          <div class="panel-header">
-            <div class="panel-header-left">
-              <span class="status-dot dot-red"></span>
-              <div>
-                <h3>Unoptimised</h3>
-                <span class="panel-endpoint">/chat</span>
-              </div>
+      <!-- UNOPTIMISED PANEL -->
+      <div class="chat-panel panel-bad">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <span class="status-dot dot-red"></span>
+            <div>
+              <h3>Unoptimised</h3>
+              <span class="panel-endpoint">/chat</span>
             </div>
-            <span class="panel-badge badge-slow">🐌 Slow Path</span>
           </div>
-
-          <div class="messages" id="chatOld">
-            <div class="empty-state">Ask me about ocean data...</div>
-          </div>
-
-          <div class="stats-box" id="statsOld">
-            <div class="stats-header">
-              <span>📊 Performance</span>
-              <button class="clear-btn" onclick="clearChat('old')">Clear</button>
-            </div>
-            <pre class="stats-content">No stats yet — send a message first</pre>
-          </div>
-
-          <div class="input-row">
-            <input id="inputOld" placeholder="e.g. avg temperature at the equator"
-                   onkeydown="if(event.key==='Enter') sendChat('old')" />
-            <button class="send-btn" onclick="sendChat('old')">Send</button>
-          </div>
+          <span class="panel-badge badge-slow">🐌 Slow Path</span>
         </div>
 
-        <!-- OPTIMISED PANEL -->
-        <div class="chat-panel panel-good">
-          <div class="panel-header">
-            <div class="panel-header-left">
-              <span class="status-dot dot-green"></span>
-              <div>
-                <h3>Optimised</h3>
-                <span class="panel-endpoint">/chat_optimised</span>
-              </div>
-            </div>
-            <span class="panel-badge badge-fast">⚡ Fast Path</span>
-          </div>
-
-          <div class="messages" id="chatNew">
-            <div class="empty-state">Ask me about ocean data...</div>
-          </div>
-
-          <div class="stats-box" id="statsNew">
-            <div class="stats-header">
-              <span>📊 Performance</span>
-              <button class="clear-btn" onclick="clearChat('new')">Clear</button>
-            </div>
-            <pre class="stats-content">No stats yet — send a message first</pre>
-          </div>
-
-          <div class="input-row">
-            <input id="inputNew" placeholder="e.g. avg temperature at the equator"
-                   onkeydown="if(event.key==='Enter') sendChat('new')" />
-            <button class="send-btn" onclick="sendChat('new')">Send</button>
-          </div>
+        <div class="messages" id="chatOld">
+          <div class="empty-state">Ask me about ocean data...</div>
         </div>
 
+        <div class="stats-box" id="statsOld">
+          <div class="stats-header">
+            <span>📊 Performance</span>
+            <button class="clear-btn" onclick="clearChat('old')">Clear</button>
+          </div>
+          <pre class="stats-content">No stats yet — send a message first</pre>
+        </div>
+
+        <div class="input-row">
+          <input id="inputOld" placeholder="e.g. avg temperature at the equator"
+                 onkeydown="if(event.key==='Enter') sendChat('old')" />
+          <button class="send-btn" onclick="sendChat('old')">Send</button>
+        </div>
+      </div>
+
+      <!-- OPTIMISED PANEL -->
+      <div class="chat-panel panel-good">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <span class="status-dot dot-green"></span>
+            <div>
+              <h3>Optimised</h3>
+              <span class="panel-endpoint">/chat_optimised</span>
+            </div>
+          </div>
+          <span class="panel-badge badge-fast">⚡ Fast Path</span>
+        </div>
+
+        <div class="messages" id="chatNew">
+          <div class="empty-state">Ask me about ocean data...</div>
+        </div>
+
+        <div class="stats-box" id="statsNew">
+          <div class="stats-header">
+            <span>📊 Performance</span>
+            <button class="clear-btn" onclick="clearChat('new')">Clear</button>
+          </div>
+          <pre class="stats-content">No stats yet — send a message first</pre>
+        </div>
+
+        <div class="input-row">
+          <input id="inputNew" placeholder="e.g. avg temperature at the equator"
+                 onkeydown="if(event.key==='Enter') sendChat('new')" />
+          <button class="send-btn" onclick="sendChat('new')">Send</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- =================== FOOTER =================== -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-left">
+        <div class="footer-logo">🌊 ARGO Analytics</div>
+        <p>Real-time ocean intelligence powered by the global Argo float program. Data sourced from INCOIS Argo Data Centre via the International Argo Data System.</p>
+        <div class="footer-data-source">
+          <a href="https://data-argo.ifremer.fr/dac/incois/?C=M;O=D" target="_blank" rel="noopener">
+            🗄️ data-argo.ifremer.fr/dac/incois/
+          </a>
+        </div>
+      </div>
+      <div class="footer-right">
+        <div class="footer-stack">
+          <span>FastAPI</span>
+          <span>PostgreSQL</span>
+          <span>GPT-4.1-mini</span>
+          <span>netCDF4</span>
+          <span>xarray</span>
+          <span>Argo Float Data</span>
+          <span>INCOIS</span>
+          <span>LRU Cache</span>
+        </div>
       </div>
     </div>
-  </section>
-
-  <!-- =================== FOOTER =================== -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-content">
-        <div class="footer-left">
-          <div class="footer-logo">🌊 ARGO Analytics</div>
-          <p>Real-time ocean intelligence powered by the global Argo float program. Data sourced from INCOIS Argo Data Centre.</p>
-        </div>
-        <div class="footer-right">
-          <div class="footer-stack">
-            <span>FastAPI</span>
-            <span>PostgreSQL</span>
-            <span>GPT-4.1-mini</span>
-            <span>netCDF4</span>
-            <span>xarray</span>
-            <span>Argo Float Data</span>
-          </div>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        For research and educational use · Demo deployment with preloaded data
-      </div>
+    <div class="footer-bottom">
+      <span>For research and educational use · Demo deployment with preloaded data</span>
+      <a href="https://data-argo.ifremer.fr/dac/incois/?C=M;O=D" target="_blank" rel="noopener">data-argo.ifremer.fr/dac/incois/</a>
     </div>
-  </footer>
+  </div>
+</footer>
 
-  <script src="script.js"></script>
+<script>
+/* =================== OCEAN CANVAS =================== */
+(function() {
+  const canvas = document.getElementById('ocean-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, t = 0;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Wave layers
+  const layers = [
+    { amp: 28, freq: 0.008, speed: 0.012, y: 0.72, alpha: 0.045, color: [34, 211, 238] },
+    { amp: 18, freq: 0.013, speed: 0.018, y: 0.76, alpha: 0.035, color: [8, 145, 178] },
+    { amp: 38, freq: 0.005, speed: 0.007, y: 0.68, alpha: 0.025, color: [22, 163, 200] },
+    { amp: 12, freq: 0.022, speed: 0.028, y: 0.80, alpha: 0.028, color: [165, 243, 252] },
+  ];
+
+  // Particle floats
+  const particles = Array.from({ length: 55 }, () => ({
+    x: Math.random() * 2000,
+    y: Math.random() * 1000,
+    r: Math.random() * 2.5 + 0.5,
+    speed: Math.random() * 0.3 + 0.05,
+    phase: Math.random() * Math.PI * 2,
+    alpha: Math.random() * 0.5 + 0.1,
+  }));
+
+  function drawWave(layer, time) {
+    ctx.beginPath();
+    const baseY = H * layer.y;
+    ctx.moveTo(0, baseY);
+    for (let x = 0; x <= W; x += 4) {
+      const y = baseY
+        + Math.sin(x * layer.freq + time * layer.speed) * layer.amp
+        + Math.sin(x * layer.freq * 1.7 + time * layer.speed * 1.3) * layer.amp * 0.4;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    const [r, g, b] = layer.color;
+    ctx.fillStyle = `rgba(${r},${g},${b},${layer.alpha})`;
+    ctx.fill();
+  }
+
+  function drawParticle(p, time) {
+    const x = (p.x + time * p.speed * 20) % W;
+    const y = p.y + Math.sin(time * 0.5 + p.phase) * 8;
+    ctx.beginPath();
+    ctx.arc(x, y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(34,211,238,${p.alpha * 0.6})`;
+    ctx.fill();
+  }
+
+  function draw(ts) {
+    t = ts * 0.001;
+    ctx.clearRect(0, 0, W, H);
+
+    // Subtle deep gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgba(1,10,20,0)');
+    grad.addColorStop(0.5, 'rgba(2,15,30,0.08)');
+    grad.addColorStop(1, 'rgba(0,5,15,0.2)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    layers.forEach(l => drawWave(l, t));
+    particles.forEach(p => drawParticle(p, t));
+
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+
+/* =================== FILL BOTH INPUTS =================== */
+function fillBoth(text, event) {
+  document.getElementById("inputOld").value = text;
+  document.getElementById("inputNew").value = text;
+  document.querySelectorAll(".query-chip").forEach(c => c.classList.remove("active"));
+  if (event && event.currentTarget) event.currentTarget.classList.add("active");
+  document.getElementById("chat").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* =================== SEND TO BOTH =================== */
+function sendBoth() {
+  const q = document.getElementById("inputOld").value.trim()
+         || document.getElementById("inputNew").value.trim();
+  if (!q) return;
+  document.getElementById("inputOld").value = q;
+  document.getElementById("inputNew").value = q;
+  sendChat("old");
+  sendChat("new");
+}
+
+/* =================== CLEAR CHAT =================== */
+function clearChat(type) {
+  const chatId  = type === "old" ? "chatOld"  : "chatNew";
+  const statsId = type === "old" ? "statsOld" : "statsNew";
+  document.getElementById(chatId).innerHTML =
+    '<div class="empty-state">Ask me about ocean data...</div>';
+  document.getElementById(statsId).querySelector(".stats-content").textContent =
+    "No stats yet — send a message first";
+}
+
+/* =================== SEND CHAT =================== */
+const BACKEND_URL = window.BACKEND_URL || "https://argo-rn2r.onrender.com";
+
+function sendChat(type) {
+  const inputEl  = document.getElementById(type === "old" ? "inputOld"  : "inputNew");
+  const chatEl   = document.getElementById(type === "old" ? "chatOld"   : "chatNew");
+  const statsEl  = document.getElementById(type === "old" ? "statsOld"  : "statsNew")
+                              .querySelector(".stats-content");
+  const endpoint = type === "old" ? "/chat" : "/chat_optimised";
+
+  const question = inputEl.value.trim();
+  if (!question) return;
+
+  const empty = chatEl.querySelector(".empty-state");
+  if (empty) empty.remove();
+
+  const userMsg = document.createElement("div");
+  userMsg.className = "msg-user";
+  userMsg.textContent = question;
+  chatEl.appendChild(userMsg);
+  inputEl.value = "";
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  const loading = document.createElement("div");
+  loading.className = "msg-loading";
+  loading.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  chatEl.appendChild(loading);
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  fetch(`${BACKEND_URL}${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question })
+  })
+    .then(res => res.json())
+    .then(data => {
+      loading.remove();
+
+      if (data.error) {
+        const err = document.createElement("div");
+        err.className = "msg-error";
+        err.textContent = "⚠️ " + data.error;
+        chatEl.appendChild(err);
+      } else {
+        const bot = document.createElement("div");
+        bot.className = "msg-bot";
+        bot.textContent = "🌊 " + data.answer;
+        chatEl.appendChild(bot);
+      }
+
+      chatEl.scrollTop = chatEl.scrollHeight;
+
+      if (data.timing) {
+        const t = data.timing;
+        const intentHit = t.cache_hit || t.intent_ms < 5;
+        const sqlHit    = t.sql_ms < 1;
+
+        const lines = [
+          `⏱  Intent :  ${String(t.intent_ms).padStart(8)} ms  ${intentHit ? "→ CACHE HIT 🎯" : "→ LLM call"}`,
+          `🗄  SQL    :  ${String(t.sql_ms).padStart(8)} ms  ${sqlHit     ? "→ CACHE HIT 🎯" : "→ DB query"}`,
+          `⚡  Total  :  ${String(t.total_ms).padStart(8)} ms`,
+          t.cache_hit ? `\n✅ Full cache hit — zero LLM calls, zero DB hits` : "",
+          `\n── Generated SQL ──`,
+          data.sql || "n/a"
+        ].filter(Boolean);
+
+        statsEl.textContent = lines.join("\n");
+      }
+    })
+    .catch(() => {
+      loading.remove();
+      const err = document.createElement("div");
+      err.className = "msg-error";
+      err.textContent = "⚠️ Connection error — is the backend running?";
+      chatEl.appendChild(err);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    });
+}
+</script>
 </body>
 </html>

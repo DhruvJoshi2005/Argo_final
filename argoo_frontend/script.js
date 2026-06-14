@@ -34,18 +34,20 @@ function clearChat(type) {
 
 // =================== SEND CHAT ===================
 function sendChat(type) {
-  const inputEl  = document.getElementById(type === "old" ? "inputOld"  : "inputNew");
-  const chatEl   = document.getElementById(type === "old" ? "chatOld"   : "chatNew");
-  const statsEl  = document.getElementById(type === "old" ? "statsOld"  : "statsNew")
-                              .querySelector(".stats-content");
-  const endpoint = type === "old" ? "/chat" : "/chat_optimised";
+  const inputEl   = document.getElementById(type === "old" ? "inputOld"  : "inputNew");
+  const chatEl    = document.getElementById(type === "old" ? "chatOld"   : "chatNew");
+  const statsEl   = document.getElementById(type === "old" ? "statsOld"  : "statsNew")
+                               .querySelector(".stats-content");
+  const endpoint  = type === "old" ? "/chat" : "/chat_optimised";
 
   const question = inputEl.value.trim();
   if (!question) return;
 
+  // Remove placeholder
   const empty = chatEl.querySelector(".empty-state");
   if (empty) empty.remove();
 
+  // User bubble
   const userMsg = document.createElement("div");
   userMsg.className = "msg-user";
   userMsg.textContent = question;
@@ -53,11 +55,14 @@ function sendChat(type) {
   inputEl.value = "";
   chatEl.scrollTop = chatEl.scrollHeight;
 
+  // Typing indicator
   const loading = document.createElement("div");
   loading.className = "msg-loading";
   loading.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
   chatEl.appendChild(loading);
   chatEl.scrollTop = chatEl.scrollHeight;
+
+  const startTime = performance.now();
 
   fetch(`${BACKEND_URL}${endpoint}`, {
     method: "POST",
@@ -82,6 +87,7 @@ function sendChat(type) {
 
       chatEl.scrollTop = chatEl.scrollHeight;
 
+      // Build stats display
       if (data.timing) {
         const t = data.timing;
         const intentHit = t.cache_hit || t.intent_ms < 5;
