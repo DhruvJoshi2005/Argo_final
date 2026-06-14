@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from download_file import run_download
-from insetion_in_database import run_all
+#from download_file import run_download
+#from insetion_in_database import run_all
 from chat_logic import main as chat_main
 from chat_main_optimised import main as chat_main_optimised, clear_sql_cache
 
