@@ -1,5 +1,5 @@
 // Set this to your deployed backend URL (e.g. https://your-app.onrender.com)
-const BACKEND_URL = window.BACKEND_URL || "http://127.0.0.1:8000";
+const BACKEND_URL = window.BACKEND_URL || "https://argo-rn2r.onrender.com";
 
 /* =========================
    REFRESH DATA (unchanged)
