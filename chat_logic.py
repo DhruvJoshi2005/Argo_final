@@ -35,6 +35,8 @@ RULES:
   metric, geo, time, depth, aggregation
 - Use null if value missing
 
+Supported metrics: temperature, salinity, pressure, oxygen, chlorophyll, backscatter, ph
+
 USER QUESTION:
 {question}
 """
@@ -141,7 +143,25 @@ def normalize_intent(intent: dict, raw_question: str) -> dict:
             intent["geo"] = geo_map[g]
 
     # -------------------------
-    # 5. STORE RAW QUESTION (FOR GROUPING LOGIC)
+    # 5. NORMALIZE METRIC SYNONYMS
+    # -------------------------
+    metric_synonyms = {
+        "dissolved oxygen": "oxygen",
+        "doxy": "oxygen",
+        "o2": "oxygen",
+        "chlorophyll-a": "chlorophyll",
+        "chla": "chlorophyll",
+        "bbp700": "backscatter",
+        "ph_in_situ_total": "ph",
+        "acidity": "ph",
+        "alkalinity": "ph",
+    }
+    if intent.get("metric"):
+        m = intent["metric"].lower().strip()
+        intent["metric"] = metric_synonyms.get(m, m)
+
+    # -------------------------
+    # 6. STORE RAW QUESTION (FOR GROUPING LOGIC)
     # -------------------------
     intent["_raw_question"] = raw_question.lower()
 
@@ -207,9 +227,13 @@ def plan_grouping(intent: dict):
 
 def build_query_plan(intent, filters, aggregation, grouping):
     metric_map = {
-        "temperature": "temperature",
-        "salinity": "salinity",
-        "pressure": "pressure"
+        "temperature":  "temperature",
+        "salinity":     "salinity",
+        "pressure":     "pressure",
+        "oxygen":       "doxy",
+        "chlorophyll":  "chla",
+        "backscatter":  "bbp700",
+        "ph":           "ph_in_situ_total",
     }
 
     return {
