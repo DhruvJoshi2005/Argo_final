@@ -1,10 +1,14 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from download_file import run_download
 from insetion_in_database import run_all
-from chat_logic import main as chat_main, OPENAI_API_KEY
+from chat_logic import main as chat_main
 from chat_main_optimised import main as chat_main_optimised
 
 
@@ -17,10 +21,12 @@ app = FastAPI(title="ARGO Data Backend")
 # ===============================
 # CORS CONFIG
 # ===============================
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -91,7 +97,7 @@ def chat_endpoint(request: ChatRequest):
             "answer": "",
             "sql": None,
             "timing": None,
-            "error": f"{e} | key_used: {OPENAI_API_KEY[:20]}..."
+            "error": str(e)
         }
 
 
@@ -120,5 +126,5 @@ def chat_optimised_endpoint(request: ChatRequest):
             "answer": "",
             "sql": None,
             "timing": None,
-            "error": f"{e} | key_used: {OPENAI_API_KEY[:20]}..."
+            "error": str(e)
         }
