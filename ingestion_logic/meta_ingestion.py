@@ -3,14 +3,17 @@ import psycopg2
 import xarray as xr
 import numpy as np
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ---------------- DB CONFIG ----------------
 DB_PARAMS = {
-    "host": "localhost",
-    "port": 5432,
-    "database": "argo_final",
-    "user": "postgres",
-    "password": "Dhruv@2005"
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": int(os.getenv("DB_PORT", 5432)),
+    "database": os.getenv("DB_NAME", "argo_final"),
+    "user": os.getenv("DB_USER", "postgres"),
+    "password": os.getenv("DB_PASSWORD")
 }
 
 META_DIR = "data_downloads/data_downloads_meta"

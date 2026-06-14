@@ -16,7 +16,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError(f"OPENAI_API_KEY not found or empty. Current value: {OPENAI_API_KEY!r}")
 
-print(f"[DEBUG] Using API key: {OPENAI_API_KEY[:20]}...")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -259,11 +258,11 @@ def validate_sql(sql: str):
 # =========================
 
 DB_PARAMS = {
-    "host": "127.0.0.1",
-    "port": 5432,
-    "database": "argo_final",
-    "user": "postgres",
-    "password": "Dhruv@2005"
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": int(os.getenv("DB_PORT", 5432)),
+    "database": os.getenv("DB_NAME", "argo_final"),
+    "user": os.getenv("DB_USER", "postgres"),
+    "password": os.getenv("DB_PASSWORD")
 }
 
 def execute_sql(sql: str):

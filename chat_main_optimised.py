@@ -38,7 +38,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError(f"OPENAI_API_KEY not found or empty. Current value: {OPENAI_API_KEY!r}")
 
-print(f"[DEBUG] Using API key: {OPENAI_API_KEY[:20]}...")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 

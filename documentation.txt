@@ -1,0 +1,113 @@
+ARGO Backend — Project Documentation
+What Is This?
+ARGO is an oceanographic data analytics platform that ingests real-world data from Argo floats (autonomous instruments drifting through the world's oceans) and lets users query that data using plain English questions. It uses GPT-4 Mini to convert the question to a SQL query, runs it against a PostgreSQL database, and returns the answer.
+
+The platform also includes a before/after optimization comparison — showing how caching and connection pooling drastically reduce response time.
+
+Tech Stack
+Layer	Technology
+API Framework	FastAPI 0.128.0
+ASGI Server	Uvicorn 0.40.0
+Database	PostgreSQL (psycopg2 2.9.11)
+AI/LLM	OpenAI API — gpt-4.1-mini
+Data Processing	xarray, numpy, netCDF4, pandas
+Web Scraping	BeautifulSoup4, requests
+Env Config	python-dotenv
+Frontend	Vanilla HTML5, CSS3, JavaScript
+API Endpoints
+GET /
+Health check.
+
+
+{ "message": "Backend is running!" }
+POST /refresh_data
+Downloads latest Argo netCDF files from IFREMER and runs the full ingestion pipeline.
+
+
+{
+  "status": "success",
+  "download_result": {},
+  "message": "Data refreshed and inserted into the database"
+}
+POST /chat
+Non-optimized chat pipeline. New DB connection and LLM call on every request.
+
+
+// Request
+{ "question": "What is average temperature at the equator?" }
+
+// Response
+{
+  "answer": "15.23",
+  "sql": "SELECT AVG(temperature) FROM float_measurements_flat WHERE latitude BETWEEN -10 AND 10",
+  "timing": { "intent_ms": 2300, "sql_ms": 145, "total_ms": 2500, "cache_hit": false },
+  "error": null
+}
+POST /chat_optimised
+Same interface as /chat but uses intent caching, SQL result caching, and a DB connection pool. Repeated queries go from ~2.5 seconds to <5ms.
+
+Database Schema (PostgreSQL — argo_final)
+
+floats                    ← Master float registry
+  └── float_meta          ← Project, PI, institution, dates
+  └── float_tech          ← Technical parameters (arrays)
+  └── float_cycles        ← One row per cycle (lat, lon, time)
+        └── float_profiles       ← PROF (T/S) or SPROF (bio-enriched)
+              └── float_profile_levels  ← One row per depth level
+                                         (pres, temp, psal, QC as JSONB)
+
+float_measurements_flat   ← Denormalized copy of all the above,
+                            rebuilt after every ingestion for fast queries
+Key columns in the flat table (used for all queries):
+platform_number, cycle_number, juld, latitude, longitude, pressure, temperature, salinity, profile_type, direction
+
+Data Flow — End to End
+
+IFREMER Website (data-argo.ifremer.fr)
+    ↓ BeautifulSoup scraping + incremental download
+netCDF files (*_meta.nc, *_prof.nc, *_Rtraj.nc, *_Sprof.nc, *_tech.nc)
+    ↓ xarray parsing
+PostgreSQL (normalized: floats → cycles → profiles → levels)
+    ↓ flat_table_ingestion.py (TRUNCATE + INSERT SELECT with JOINs)
+float_measurements_flat (single denormalized table for fast reads)
+    ↓ User asks question via frontend or API
+GPT-4 Mini (intent extraction: metric, geo, aggregation, time, depth)
+    ↓ Deterministic SQL builder
+SELECT AVG(temperature) FROM float_measurements_flat WHERE ...
+    ↓ psycopg2 execution
+Answer returned with timing stats
+Query Pipeline (How Natural Language → SQL Works)
+Intent Extraction — GPT-4 Mini converts the question to structured JSON: { "metric": "temperature", "geo": "equator", "aggregation": "avg" }
+Normalize — synonyms mapped ("average"→"avg", "equator"→lat BETWEEN -10 AND 10)
+Plan Filters — geographic bounding boxes, time filters, depth filters
+Build SQL — generates a safe SELECT statement
+Validate SQL — rejects any DROP/DELETE/UPDATE/INSERT/ALTER
+Execute — runs against float_measurements_flat
+Return — answer + generated SQL + timing
+Optimization Comparison (/chat vs /chat_optimised)
+/chat	/chat_optimised
+LLM calls	Every request	Cached after first call
+DB connections	New per request	Pool of 1–10 reused
+SQL results	Always recomputed	Cached by SQL string
+First request	~2.5 seconds	~2.5 seconds
+Repeated request	~2.5 seconds	<5 milliseconds
+File Roles
+File	Role
+main.py	FastAPI app, all 4 routes
+chat_logic.py	Non-optimized pipeline (LLM → SQL → DB)
+chat_main_optimised.py	Optimized pipeline with caching + pooling
+insetion_in_database.py	Master ingestion orchestrator (runs all 6 steps)
+download_file.py	Scrapes & downloads netCDF files from IFREMER
+ingestion_logic/meta_ingestion.py	Parses *_meta.nc → floats + float_meta
+ingestion_logic/tech_ingestion.py	Parses *_tech.nc → float_tech
+ingestion_logic/rtraj_ingestion.py	Parses *_Rtraj.nc → float_cycles
+ingestion_logic/prof_ingestion.py	Parses *_prof.nc → profiles + levels (T/S)
+ingestion_logic/sprof_ingestion.py	Parses *_Sprof.nc → profiles + levels (bio)
+ingestion_logic/flat_table_ingestion.py	Rebuilds denormalized flat table
+argoo_frontend/index.html	Two-column chat UI (before vs after optimization)
+argoo_frontend/script.js	Frontend fetch logic for /chat and /chat_optimised
+Supported Query Patterns
+Metrics: temperature, salinity, pressure
+Aggregations: avg / min / max
+Geographies: equator, Pacific Ocean, Atlantic Ocean, Indian Ocean, Arctic, Southern Ocean, Tropic of Cancer/Capricorn
+Grouping: "per N cycles" (e.g. "average temperature per 10 cycles")
