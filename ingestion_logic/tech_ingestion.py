@@ -172,10 +172,12 @@ def process_tech_file(conn, filepath):
         upsert_float_tech(conn, data)
         conn.commit()
         print(f"✅ TECH ingested: {platform_number}")
+        return platform_number
 
     except Exception as e:
         conn.rollback()
         print(f"❌ TECH failed ({filename}): {e}")
+        return None
 
     finally:
         ds.close()
@@ -183,14 +185,18 @@ def process_tech_file(conn, filepath):
 
 # ---------------- RUNNER ----------------
 def run_tech_ingestion():
+    platforms = set()
     conn = connect_db()
     try:
         for fname in sorted(os.listdir(TECH_DIR)):
             if fname.endswith(".nc"):
-                process_tech_file(conn, os.path.join(TECH_DIR, fname))
+                pn = process_tech_file(conn, os.path.join(TECH_DIR, fname))
+                if pn:
+                    platforms.add(pn)
     finally:
         conn.close()
         print("🔒 DB connection closed")
+    return platforms
 
 
 if __name__ == "__main__":

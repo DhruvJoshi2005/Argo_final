@@ -206,18 +206,23 @@ def process_prof_file(conn, path):
         )
 
     ds.close()
+    return platform_number
 
 
 # ================= RUN =================
 def run():
+    platforms = set()
     conn = connect_db()
     try:
         for f in sorted(os.listdir(PROF_DIR)):
             if f.endswith(".nc"):
-                process_prof_file(conn, os.path.join(PROF_DIR, f))
+                pn = process_prof_file(conn, os.path.join(PROF_DIR, f))
+                if pn:
+                    platforms.add(pn)
     finally:
         conn.close()
         print("\n🔒 DB connection closed")
+    return platforms
 
 
 if __name__ == "__main__":

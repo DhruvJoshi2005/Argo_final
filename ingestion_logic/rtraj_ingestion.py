@@ -120,9 +120,11 @@ def process_rtraj_file(conn, filepath):
                 )
 
         print(f"✅ RTRAJ ingested: {platform_number}")
+        return platform_number
 
     except Exception as e:
         print(f"❌ RTRAJ failed ({filename}): {e}")
+        return None
 
     finally:
         ds.close()
@@ -130,14 +132,18 @@ def process_rtraj_file(conn, filepath):
 
 # ================= RUNNER =================
 def run_rtraj_ingestion():
+    platforms = set()
     conn = connect_db()
     try:
         for fname in sorted(os.listdir(RTRAJ_DIR)):
             if fname.endswith(".nc"):
-                process_rtraj_file(conn, os.path.join(RTRAJ_DIR, fname))
+                pn = process_rtraj_file(conn, os.path.join(RTRAJ_DIR, fname))
+                if pn:
+                    platforms.add(pn)
     finally:
         conn.close()
         print("🔒 DB connection closed")
+    return platforms
 
 
 if __name__ == "__main__":
