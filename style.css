@@ -581,7 +581,6 @@ body {
   line-height: 1.5;
 }
 
-/* Typing indicator */
 .msg-loading {
   align-self: flex-start;
   display: flex;
@@ -726,7 +725,6 @@ body {
 
 /* =================== RESPONSIVE =================== */
 
-/* Tablet */
 @media (max-width: 960px) {
   .chat-wrapper    { grid-template-columns: 1fr; }
   .compare-wrapper { flex-direction: column; }
@@ -736,7 +734,6 @@ body {
   .impact-divider  { height: 36px; }
 }
 
-/* Mobile */
 @media (max-width: 640px) {
   .section { padding: 56px 0; }
   .hero-content { padding: 40px 16px 110px; }
@@ -761,7 +758,6 @@ body {
   .perf-val { font-size: 0.82rem; }
 }
 
-/* Small mobile */
 @media (max-width: 400px) {
   .hero-title { font-size: 2.4rem; }
   .panel-header { flex-wrap: wrap; gap: 8px; }
