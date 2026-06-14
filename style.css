@@ -1,0 +1,78 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 20px;
+}
+
+/* 🔥 CENTER TITLE */
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* 🔥 CENTER REFRESH */
+.refresh-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px; /* distance from chatbots */
+}
+
+.refresh-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 🔥 CHAT CONTAINER SPACING */
+.chat-container {
+  display: flex;
+  justify-content: center;
+  gap: 50px;              /* distance BETWEEN chatbots */
+}
+
+/* CHAT BOX */
+.chat-box {
+  background: white;
+  padding: 15px;
+  width: 420px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* CHAT MESSAGES */
+.messages {
+  height: 250px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+/* 🔥 STATS BOX */
+.stats-box {
+  background: #0f172a;
+  color: #e5e7eb;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.stats-box h4 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+}
+
+.stats-content {
+  font-size: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* INPUT */
+input {
+  width: 100%;
+  padding: 6px;
+  margin-bottom: 6px;
+}
