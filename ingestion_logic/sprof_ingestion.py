@@ -287,17 +287,22 @@ def process_sprof_file(conn, path):
         print(f"   🔁 Cycle {int(cycles[p])} | {action} | {len(rows)} levels")
 
     ds.close()
+    return platform_number
 
 # ================= RUN =================
 def run():
+    platforms = set()
     conn = connect_db()
     try:
         for f in sorted(os.listdir(SPROF_DIR)):
             if f.endswith(".nc"):
-                process_sprof_file(conn, os.path.join(SPROF_DIR, f))
+                pn = process_sprof_file(conn, os.path.join(SPROF_DIR, f))
+                if pn:
+                    platforms.add(pn)
     finally:
         conn.close()
         print("\n🔒 DB connection closed")
+    return platforms
 
 if __name__ == "__main__":
     run()

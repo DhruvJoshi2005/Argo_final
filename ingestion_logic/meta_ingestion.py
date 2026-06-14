@@ -146,10 +146,12 @@ def process_meta_file(conn, filepath):
         upsert_float_meta(conn, data)
         conn.commit()
         print(f"✅ META ingested: {platform_number}")
+        return platform_number
 
     except Exception as e:
         conn.rollback()
         print(f"❌ META failed ({filename}): {e}")
+        return None
 
     finally:
         ds.close()
@@ -157,14 +159,18 @@ def process_meta_file(conn, filepath):
 
 # ---------------- RUNNER ----------------
 def run_meta_ingestion():
+    platforms = set()
     conn = connect_db()
     try:
         for fname in sorted(os.listdir(META_DIR)):
             if fname.endswith(".nc"):
-                process_meta_file(conn, os.path.join(META_DIR, fname))
+                pn = process_meta_file(conn, os.path.join(META_DIR, fname))
+                if pn:
+                    platforms.add(pn)
     finally:
         conn.close()
         print("🔒 DB connection closed")
+    return platforms
 
 
 if __name__ == "__main__":

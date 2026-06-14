@@ -52,32 +52,34 @@ def run_all():
 
     # ---------- META ----------
     print("\n🔹 STEP 1: META")
-    run_meta_ingestion()
+    meta_platforms = run_meta_ingestion()
     delete_folder("data_downloads/data_downloads_meta")
 
     # ---------- TECH ----------
     print("\n🔹 STEP 2: TECH")
-    run_tech_ingestion()
+    tech_platforms = run_tech_ingestion()
     delete_folder("data_downloads/data_downloads_tech")
 
     # ---------- RTRAJ ----------
     print("\n🔹 STEP 3: RTRAJ")
-    run_rtraj_ingestion()
+    rtraj_platforms = run_rtraj_ingestion()
     delete_folder("data_downloads/data_downloads_rtraj")
 
     # ---------- PROF ----------
     print("\n🔹 STEP 4: PROF")
-    run_prof_ingestion()
+    prof_platforms = run_prof_ingestion()
     delete_folder("data_downloads/data_downloads_prof")
 
     # ---------- SPROF ----------
     print("\n🔹 STEP 5: SPROF")
-    run_sprof_ingestion()
+    sprof_platforms = run_sprof_ingestion()
     delete_folder("data_downloads/data_downloads_sprof")
 
     # ---------- FLAT TABLE ----------
-    print("\n🔹 STEP 6: FLAT TABLE")
-    rebuild_flat_table()
+    # Union all platforms touched in this run
+    all_platforms = meta_platforms | tech_platforms | rtraj_platforms | prof_platforms | sprof_platforms
+    print(f"\n🔹 STEP 6: FLAT TABLE ({len(all_platforms)} platforms affected)")
+    rebuild_flat_table(platforms=all_platforms if all_platforms else None)
 
     print("\n================= ✅ ALL INGESTION COMPLETED =================")
 
