@@ -1,67 +1,68 @@
-// Set this to your deployed backend URL (e.g. https://your-app.onrender.com)
 const BACKEND_URL = window.BACKEND_URL || "https://argo-rn2r.onrender.com";
 
-/* =========================
-   REFRESH DATA (unchanged)
-========================= */
-document.getElementById("refreshBtn").onclick = async () => {
-  const btn = document.getElementById("refreshBtn");
-  const status = document.getElementById("refreshStatus");
+// =================== FILL BOTH INPUTS ===================
+function fillBoth(text) {
+  document.getElementById("inputOld").value = text;
+  document.getElementById("inputNew").value = text;
 
-  btn.disabled = true;
-  btn.innerText = "⏳ Updating...";
-  status.innerText = "";
+  document.querySelectorAll(".query-chip").forEach(c => c.classList.remove("active"));
+  event.currentTarget.classList.add("active");
 
-  try {
-    const res = await fetch(`${BACKEND_URL}/refresh_data`, {
-      method: "POST"
-    });
+  document.getElementById("chat").scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
-    if (res.ok) {
-      const data = await res.json();
-      status.innerText = data.message;
-      status.style.color = "green";
-      setTimeout(() => status.innerText = "", 3000);
-    }
-  } catch {
-    status.innerText = "⚠️ Refresh failed";
-    status.style.color = "red";
-    setTimeout(() => status.innerText = "", 3000);
-  }
+// =================== SEND TO BOTH ===================
+function sendBoth() {
+  const q = document.getElementById("inputOld").value.trim()
+         || document.getElementById("inputNew").value.trim();
+  if (!q) return;
+  document.getElementById("inputOld").value = q;
+  document.getElementById("inputNew").value = q;
+  sendChat("old");
+  sendChat("new");
+}
 
-  btn.disabled = false;
-  btn.innerText = "🔄 Refresh Data";
-};
+// =================== CLEAR CHAT ===================
+function clearChat(type) {
+  const chatId  = type === "old" ? "chatOld"  : "chatNew";
+  const statsId = type === "old" ? "statsOld" : "statsNew";
+  document.getElementById(chatId).innerHTML =
+    '<div class="empty-state">Ask me about ocean data...</div>';
+  document.getElementById(statsId).querySelector(".stats-content").textContent =
+    "No stats yet — send a message first";
+}
 
-
-/* =========================
-   CHAT WITH STATS
-========================= */
+// =================== SEND CHAT ===================
 function sendChat(type) {
+  const inputEl   = document.getElementById(type === "old" ? "inputOld"  : "inputNew");
+  const chatEl    = document.getElementById(type === "old" ? "chatOld"   : "chatNew");
+  const statsEl   = document.getElementById(type === "old" ? "statsOld"  : "statsNew")
+                               .querySelector(".stats-content");
+  const endpoint  = type === "old" ? "/chat" : "/chat_optimised";
 
-  const input = type === "old"
-    ? document.getElementById("inputOld")
-    : document.getElementById("inputNew");
-
-  const chatBox = type === "old"
-    ? document.getElementById("chatOld")
-    : document.getElementById("chatNew");
-
-  const statsBox = type === "old"
-    ? document.getElementById("statsOld").querySelector(".stats-content")
-    : document.getElementById("statsNew").querySelector(".stats-content");
-
-  const endpoint = type === "old"
-    ? "/chat"
-    : "/chat_optimised";
-
-  const question = input.value.trim();
+  const question = inputEl.value.trim();
   if (!question) return;
 
-  // show user message
-  chatBox.innerHTML += `<div><b>You:</b> ${question}</div>`;
-  input.value = "";
-  chatBox.scrollTop = chatBox.scrollHeight;
+  // Remove placeholder
+  const empty = chatEl.querySelector(".empty-state");
+  if (empty) empty.remove();
+
+  // User bubble
+  const userMsg = document.createElement("div");
+  userMsg.className = "msg-user";
+  userMsg.textContent = question;
+  chatEl.appendChild(userMsg);
+  inputEl.value = "";
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  // Typing indicator
+  const loading = document.createElement("div");
+  loading.className = "msg-loading";
+  loading.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  chatEl.appendChild(loading);
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  const startTime = performance.now();
 
   fetch(`${BACKEND_URL}${endpoint}`, {
     method: "POST",
@@ -70,20 +71,46 @@ function sendChat(type) {
   })
     .then(res => res.json())
     .then(data => {
+      loading.remove();
 
-      // show answer
-      chatBox.innerHTML += `<div><b>Bot:</b> ${data.answer}</div>`;
-      chatBox.scrollTop = chatBox.scrollHeight;
+      if (data.error) {
+        const err = document.createElement("div");
+        err.className = "msg-error";
+        err.textContent = "⚠️ " + data.error;
+        chatEl.appendChild(err);
+      } else {
+        const bot = document.createElement("div");
+        bot.className = "msg-bot";
+        bot.textContent = "🌊 " + data.answer;
+        chatEl.appendChild(bot);
+      }
 
-      // 🔥 BUILD STATS VIEW
-      const stats = {
-        timing: data.timing,
-        sql: data.sql
-      };
+      chatEl.scrollTop = chatEl.scrollHeight;
 
-      statsBox.textContent = JSON.stringify(stats, null, 2);
+      // Build stats display
+      if (data.timing) {
+        const t = data.timing;
+        const intentHit = t.cache_hit || t.intent_ms < 5;
+        const sqlHit    = t.sql_ms < 1;
+
+        const lines = [
+          `⏱  Intent :  ${String(t.intent_ms).padStart(8)} ms  ${intentHit ? "→ CACHE HIT 🎯" : "→ LLM call"}`,
+          `🗄  SQL    :  ${String(t.sql_ms).padStart(8)} ms  ${sqlHit     ? "→ CACHE HIT 🎯" : "→ DB query"}`,
+          `⚡  Total  :  ${String(t.total_ms).padStart(8)} ms`,
+          t.cache_hit ? `\n✅ Full cache hit — zero LLM calls, zero DB hits` : "",
+          `\n── Generated SQL ──`,
+          data.sql || "n/a"
+        ].filter(Boolean);
+
+        statsEl.textContent = lines.join("\n");
+      }
     })
     .catch(() => {
-      chatBox.innerHTML += `<div style="color:red;"><b>Bot:</b> Error</div>`;
+      loading.remove();
+      const err = document.createElement("div");
+      err.className = "msg-error";
+      err.textContent = "⚠️ Connection error — is the backend running?";
+      chatEl.appendChild(err);
+      chatEl.scrollTop = chatEl.scrollHeight;
     });
 }
