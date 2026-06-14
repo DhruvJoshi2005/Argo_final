@@ -21,7 +21,7 @@ app = FastAPI(title="ARGO Data Backend")
 # ===============================
 # CORS CONFIG
 # ===============================
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+ALLOWED_ORIGINS = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
