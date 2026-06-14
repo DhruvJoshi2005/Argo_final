@@ -6,24 +6,36 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# =========================
-# OPENAI CLIENT
-# =========================
 
-load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# =============================================================
+# BAD PRACTICE: No global client, no pool, no cache.
+# Every helper re-reads .env and rebuilds objects from scratch.
+# =============================================================
 
-if not OPENAI_API_KEY:
-    raise ValueError(f"OPENAI_API_KEY not found or empty. Current value: {OPENAI_API_KEY!r}")
+def _fresh_openai_client():
+    load_dotenv()                            # BAD: disk read on every call
+    return OpenAI(api_key=os.getenv("OPENAI_API_KEY"))   # BAD: new object every call
 
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+def _fresh_db_conn():
+    load_dotenv()                            # BAD: disk read again
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", 5432)),
+        database=os.getenv("DB_NAME", "argo_final"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD")   # BAD: new TCP handshake every call
+    )
+
 
 # =========================
 # STEP 1: INTENT EXTRACTION
+# No cache — LLM called on every single request
 # =========================
 
 def extract_intent_llm(question: str) -> dict:
+    client = _fresh_openai_client()          # BAD: brand new client every request
+
     prompt = f"""
 You are an intent extraction engine.
 
@@ -50,24 +62,14 @@ USER QUESTION:
         ]
     )
 
-    content = response.choices[0].message.content
+    content = response.choices[0].message.content.strip()
 
-    # 🔒 HARD SAFETY CHECK
-    if not content or not content.strip():
-        raise ValueError("LLM returned empty response")
-
-    content = content.strip()
-
-    # 🔒 STRIP MARKDOWN IF PRESENT
     if content.startswith("```"):
         content = content.strip("`")
         if content.startswith("json"):
             content = content[4:].strip()
 
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        raise ValueError(f"Invalid JSON from LLM:\n{content}")
+    return json.loads(content)
 
 
 # =========================
@@ -76,56 +78,37 @@ USER QUESTION:
 
 def validate_intent(intent: dict):
     allowed_keys = {"metric", "geo", "time", "depth", "aggregation"}
-
     for key in intent:
         if key not in allowed_keys:
             raise ValueError(f"Invalid intent key: {key}")
-
     if not intent.get("metric"):
         raise ValueError("Metric is required")
+
 
 # =========================
 # STEP 3: INTENT NORMALIZATION
 # =========================
 
 def normalize_intent(intent: dict, raw_question: str) -> dict:
-    # -------------------------
-    # 1. NORMALIZE AGGREGATION WORDS
-    # -------------------------
     agg_map = {
-        "average": "avg",
-        "mean": "avg",
-        "maximum": "max",
-        "max": "max",
-        "minimum": "min",
-        "min": "min"
+        "average": "avg", "mean": "avg",
+        "maximum": "max", "max": "max",
+        "minimum": "min", "min": "min"
     }
 
-    # -------------------------
-    # 2. SPLIT AGGREGATION FROM METRIC IF EMBEDDED
-    # -------------------------
     if intent.get("metric"):
         metric_text = intent["metric"].lower()
-
         for word, agg in agg_map.items():
             if word in metric_text:
                 intent["aggregation"] = agg
                 metric_text = metric_text.replace(word, "").strip()
-
         intent["metric"] = metric_text if metric_text else intent["metric"]
 
-    # -------------------------
-    # 3. NORMALIZE EXPLICIT AGGREGATION FIELD
-    # -------------------------
     if intent.get("aggregation"):
         intent["aggregation"] = agg_map.get(
-            intent["aggregation"].lower(),
-            intent["aggregation"]
+            intent["aggregation"].lower(), intent["aggregation"]
         )
 
-    # -------------------------
-    # 4. NORMALIZE GEO TERMS
-    # -------------------------
     geo_map = {
         "equator": "geo_equator",
         "tropic of cancer": "geo_tropic_cancer",
@@ -136,35 +119,22 @@ def normalize_intent(intent: dict, raw_question: str) -> dict:
         "southern ocean": "geo_southern",
         "arctic ocean": "geo_arctic"
     }
-
     if intent.get("geo"):
         g = intent["geo"].lower()
         if g in geo_map:
             intent["geo"] = geo_map[g]
 
-    # -------------------------
-    # 5. NORMALIZE METRIC SYNONYMS
-    # -------------------------
     metric_synonyms = {
-        "dissolved oxygen": "oxygen",
-        "doxy": "oxygen",
-        "o2": "oxygen",
-        "chlorophyll-a": "chlorophyll",
-        "chla": "chlorophyll",
+        "dissolved oxygen": "oxygen", "doxy": "oxygen", "o2": "oxygen",
+        "chlorophyll-a": "chlorophyll", "chla": "chlorophyll",
         "bbp700": "backscatter",
-        "ph_in_situ_total": "ph",
-        "acidity": "ph",
-        "alkalinity": "ph",
+        "ph_in_situ_total": "ph", "acidity": "ph", "alkalinity": "ph",
     }
     if intent.get("metric"):
         m = intent["metric"].lower().strip()
         intent["metric"] = metric_synonyms.get(m, m)
 
-    # -------------------------
-    # 6. STORE RAW QUESTION (FOR GROUPING LOGIC)
-    # -------------------------
     intent["_raw_question"] = raw_question.lower()
-
     return intent
 
 
@@ -174,22 +144,21 @@ def normalize_intent(intent: dict, raw_question: str) -> dict:
 
 def plan_filters(intent: dict) -> list:
     filters = []
-
     geo_boxes = {
-        "geo_equator": (-10, 10, -180, 180),
-        "geo_tropic_cancer": (15, 30, -180, 180),
-        "geo_tropic_capricorn": (-30, -15, -180, 180),
-        "geo_pacific": (-60, 60, 120, -70),
-        "geo_atlantic": (-60, 60, -70, 20),
-        "geo_indian": (-60, 30, 20, 120),
-        "geo_southern": (-90, -55, -180, 180),
-        "geo_arctic": (55, 90, -180, 180)
+        "geo_equator":          (-10, 10,   -180, 180),
+        "geo_tropic_cancer":    (15,  30,   -180, 180),
+        "geo_tropic_capricorn": (-30, -15,  -180, 180),
+        "geo_pacific":          (-60, 60,    120, -70),
+        "geo_atlantic":         (-60, 60,   -70,   20),
+        "geo_indian":           (-60, 30,    20,  120),
+        "geo_southern":         (-90, -55, -180,  180),
+        "geo_arctic":           (55,  90,  -180,  180)
     }
 
     geo = intent.get("geo")
     if geo in geo_boxes:
         lat_min, lat_max, lon_min, lon_max = geo_boxes[geo]
-        filters.append(("latitude", "BETWEEN", (lat_min, lat_max)))
+        filters.append(("latitude",  "BETWEEN", (lat_min, lat_max)))
         filters.append(("longitude", "BETWEEN", (lon_min, lon_max)))
 
     if intent.get("time") is not None:
@@ -200,6 +169,7 @@ def plan_filters(intent: dict) -> list:
 
     return filters
 
+
 # =========================
 # STEP 5: AGGREGATION
 # =========================
@@ -209,6 +179,7 @@ def plan_aggregation(intent: dict) -> dict:
     if agg in {"avg", "min", "max"}:
         return {"apply": True, "type": agg}
     return {"apply": False, "type": None}
+
 
 # =========================
 # STEP 6: GROUPING
@@ -221,38 +192,42 @@ def plan_grouping(intent: dict):
         return None
     return f"(cycle_number / {int(m.group(1))})"
 
+
 # =========================
 # STEP 7: QUERY PLAN
 # =========================
 
 def build_query_plan(intent, filters, aggregation, grouping):
     metric_map = {
-        "temperature":  "temperature",
-        "salinity":     "salinity",
-        "pressure":     "pressure",
-        "oxygen":       "doxy",
-        "chlorophyll":  "chla",
-        "backscatter":  "bbp700",
-        "ph":           "ph_in_situ_total",
+        "temperature": "temperature",
+        "salinity":    "salinity",
+        "pressure":    "pressure",
+        "oxygen":      "doxy",
+        "chlorophyll": "chla",
+        "backscatter": "bbp700",
+        "ph":          "ph_in_situ_total",
+    }
+    return {
+        "column":      metric_map[intent["metric"]],
+        "filters":     filters,
+        "aggregation": aggregation,
+        "grouping":    grouping
     }
 
-    return {
-        "column": metric_map[intent["metric"]],
-        "filters": filters,
-        "aggregation": aggregation,
-        "grouping": grouping
-    }
 
 # =========================
 # STEP 8: SQL GENERATION
+# BAD: No DB-side aggregation — SELECT raw column only.
+# All rows come to Python; Python does the math.
 # =========================
 
-def generate_sql(plan: dict) -> str:
+def generate_sql(plan: dict):
     col = plan["column"]
     agg = plan["aggregation"]
 
-    select = f"SELECT {agg['type'].upper()}({col})" if agg["apply"] else f"SELECT {col}"
-    sql = [select, "FROM float_measurements_flat"]
+    # BAD: Never push AVG/MIN/MAX into the database.
+    # Always pull every individual row and aggregate in Python.
+    sql = [f"SELECT {col}", "FROM float_measurements_flat"]
 
     if plan["filters"]:
         where = []
@@ -266,7 +241,9 @@ def generate_sql(plan: dict) -> str:
     if plan["grouping"]:
         sql.append(f"GROUP BY {plan['grouping']}")
 
-    return "\n".join(sql)
+    agg_type = agg["type"] if agg["apply"] else None
+    return "\n".join(sql), agg_type
+
 
 # =========================
 # STEP 9: SQL VALIDATION
@@ -277,30 +254,54 @@ def validate_sql(sql: str):
         if kw in sql.upper():
             raise ValueError(f"Forbidden SQL keyword: {kw}")
 
+
 # =========================
 # STEP 10: DB EXECUTION
+# BAD: Two separate connections per request.
+# BAD: Fetches every row into Python memory, then aggregates in a loop.
 # =========================
 
-DB_PARAMS = {
-    "host": os.getenv("DB_HOST", "localhost"),
-    "port": int(os.getenv("DB_PORT", 5432)),
-    "database": os.getenv("DB_NAME", "argo_final"),
-    "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD")
-}
-
-def execute_sql(sql: str):
+def execute_sql(sql: str, agg_type: str):
     start = time.perf_counter()
-    conn = psycopg2.connect(**DB_PARAMS)
+
+    # BAD: Open connection #1 just to check the table exists (pointless round-trip)
+    check_conn = _fresh_db_conn()
+    try:
+        with check_conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_name = 'float_measurements_flat'"
+            )
+            cur.fetchone()
+    finally:
+        check_conn.close()   # close it immediately after one query
+
+    # BAD: Open connection #2 for the actual query (new TCP handshake again)
+    conn = _fresh_db_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(sql)
-            rows = cur.fetchall()
+            rows = cur.fetchall()   # BAD: pulls ALL matching rows into Python RAM
     finally:
         conn.close()
 
+    # BAD: Aggregate in Python instead of letting the database do it
+    values = [r[0] for r in rows if r[0] is not None]
+
+    if not values:
+        result = None
+    elif agg_type == "avg":
+        result = sum(values) / len(values)   # BAD: Python loop over all rows
+    elif agg_type == "max":
+        result = max(values)
+    elif agg_type == "min":
+        result = min(values)
+    else:
+        result = values[0] if values else None
+
     sql_ms = (time.perf_counter() - start) * 1000
-    return rows, sql_ms
+    return result, sql_ms
+
 
 # =========================
 # STEP 11: MAIN (WITH TIMINGS)
@@ -309,14 +310,12 @@ def execute_sql(sql: str):
 def main(user_question: str):
     total_start = time.perf_counter()
 
-    # intent timing
     t_intent_start = time.perf_counter()
-    intent = extract_intent_llm(user_question)
+    intent = extract_intent_llm(user_question)    # no cache, always calls LLM
     validate_intent(intent)
     intent = normalize_intent(intent, user_question)
     intent_ms = (time.perf_counter() - t_intent_start) * 1000
 
-    # planning
     plan = build_query_plan(
         intent,
         plan_filters(intent),
@@ -324,27 +323,22 @@ def main(user_question: str):
         plan_grouping(intent)
     )
 
-    # SQL generation
-    sql = generate_sql(plan)
-
-    # 🔥 PRINT SQL (for visibility)
-    print("\n🧾 GENERATED SQL (UNOPTIMISED):\n", sql)
+    sql, agg_type = generate_sql(plan)
+    print("\n🐌 GENERATED SQL (UNOPTIMISED):\n", sql)
 
     validate_sql(sql)
 
-    # DB execution
-    rows, sql_ms = execute_sql(sql)
+    result, sql_ms = execute_sql(sql, agg_type)
 
     total_ms = (time.perf_counter() - total_start) * 1000
-    answer = rows[0][0] if rows else None
 
     return {
-        "answer": str(answer) if answer is not None else "No data found",
-        "sql": sql,   # 🔥 RETURN GENERATED SQL
+        "answer": str(result) if result is not None else "No data found",
+        "sql": sql,
         "timing": {
             "intent_ms": round(intent_ms, 2),
-            "sql_ms": round(sql_ms, 2),
-            "total_ms": round(total_ms, 2),
+            "sql_ms":    round(sql_ms, 2),
+            "total_ms":  round(total_ms, 2),
             "cache_hit": False
         }
     }
