@@ -63,14 +63,18 @@ def home():
 
 @app.post("/refresh_data")
 def refresh_data():
-    download_result = run_download()
-    run_all()
-    clear_sql_cache()
     return {
-        "status": "success",
-        "download_result": download_result,
-        "message": "Data refreshed and inserted into the database"
+        "status": "disabled",
+        "message": "Data refresh is disabled in demo deployment. Data is preloaded."
     }
+    # download_result = run_download()
+    # run_all()
+    # clear_sql_cache()
+    # return {
+    #     "status": "success",
+    #     "download_result": download_result,
+    #     "message": "Data refreshed and inserted into the database"
+    # }
 
 
 # ===============================
