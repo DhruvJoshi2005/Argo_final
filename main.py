@@ -9,7 +9,7 @@ load_dotenv()
 from download_file import run_download
 from insetion_in_database import run_all
 from chat_logic import main as chat_main
-from chat_main_optimised import main as chat_main_optimised
+from chat_main_optimised import main as chat_main_optimised, clear_sql_cache
 
 
 # ===============================
@@ -65,6 +65,7 @@ def home():
 def refresh_data():
     download_result = run_download()
     run_all()
+    clear_sql_cache()
     return {
         "status": "success",
         "download_result": download_result,

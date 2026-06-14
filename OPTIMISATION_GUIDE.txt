@@ -55,3 +55,28 @@ The current code structure already supports this transition. Later, the in-memor
 
 Final summary
 In-memory cache works only in simple deployments. For serious production deployments, Redis or another shared cache is required. The current implementation is correct and sufficient for now, and migrating later will be straightforward.
+
+
+
+
+Round 2 Optimisations (Pre-Deployment)
+
+After reviewing the optimised pipeline before deployment, six additional improvements were identified and implemented.
+
+1. ThreadedConnectionPool instead of SimpleConnectionPool
+The original code used psycopg2.pool.SimpleConnectionPool which is not thread-safe. FastAPI with uvicorn runs in a multi-threaded environment, and multiple simultaneous requests could corrupt the connection pool state. This was replaced with psycopg2.pool.ThreadedConnectionPool which uses internal locking and is safe for concurrent access. This is a correctness fix, not just a performance fix.
+
+2. LRU Cache with bounded size
+The original INTENT_CACHE and SQL_CACHE were plain Python dictionaries that grew without limit. In a long-running production server, these could consume unbounded memory. Both caches were replaced with a custom LRUCache class built on collections.OrderedDict. The intent cache holds a maximum of 500 entries and the SQL cache holds a maximum of 200 entries. When the limit is exceeded, the least recently used entry is evicted. This keeps memory usage predictable and bounded.
+
+3. Better cache key normalization for higher cache hit rate
+The original cache key was simply question.strip().lower(). This meant that "average temperature?" and "average temperature" or "average  temperature" (extra space) would all miss the cache and result in unnecessary LLM calls. The cache key now strips all punctuation and collapses multiple spaces into one before looking up the cache. This increases the cache hit rate significantly for real user queries.
+
+4. SQL cache auto-clear after data refresh
+After a /refresh_data call, new data is ingested into the database. However, the old SQL cache still holds results from before the refresh. This means users could get stale answers until the cache naturally expired, which it never did. Now, clear_sql_cache() is called automatically at the end of every /refresh_data request. This ensures the SQL cache is always consistent with the latest data. The intent cache is not cleared since question-to-intent mappings do not depend on the underlying data.
+
+5. NULL filter for bio metric queries
+When querying bio parameters such as dissolved oxygen, chlorophyll, backscatter, or pH, most rows in the flat table have NULL values because these measurements only come from BGC-Argo floats via Sprof files. Without filtering, the database scans all 5.7 million rows but skips NULLs during aggregation anyway. By automatically adding a column IS NOT NULL condition to the WHERE clause for bio metric queries, the database can use available indexes and avoid scanning irrelevant rows. This makes bio queries significantly faster and the intent is also clearer.
+
+6. Early metric validation
+Previously, metric validation happened late in the pipeline, at the build_query_plan step, after the LLM had already been called and the result cached. If the metric was unsupported, the error was thrown after spending time on intent extraction. The metric is now validated immediately after normalization using a dedicated validate_metric function. If the metric is not in the supported list, the pipeline fails fast with a clear error message before any planning or SQL generation. This avoids wasting work and returns a useful error to the user immediately.

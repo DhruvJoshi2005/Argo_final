@@ -2,6 +2,7 @@ import json
 import re
 import time
 import os
+from collections import OrderedDict
 from dotenv import load_dotenv
 from psycopg2 import pool
 from openai import OpenAI
@@ -10,11 +11,37 @@ from openai import OpenAI
 # STEP 0: GLOBALS
 # ======================================================
 
-# 🔥 Intent cache (question → intent)
-INTENT_CACHE = {}
+# LRU cache — bounded size, evicts oldest on overflow
+class LRUCache:
+    def __init__(self, max_size: int):
+        self._cache = OrderedDict()
+        self._max_size = max_size
 
-# 🔥 SQL result cache (sql → rows)
-SQL_CACHE = {}
+    def get(self, key):
+        if key not in self._cache:
+            return None, False
+        self._cache.move_to_end(key)
+        return self._cache[key], True
+
+    def set(self, key, value):
+        if key in self._cache:
+            self._cache.move_to_end(key)
+        self._cache[key] = value
+        if len(self._cache) > self._max_size:
+            self._cache.popitem(last=False)
+
+    def clear(self):
+        self._cache.clear()
+
+    def __len__(self):
+        return len(self._cache)
+
+
+# Intent cache: max 500 unique questions
+INTENT_CACHE = LRUCache(max_size=500)
+
+# SQL result cache: max 200 unique queries
+SQL_CACHE = LRUCache(max_size=200)
 
 load_dotenv()
 DB_PARAMS = {
@@ -25,12 +52,25 @@ DB_PARAMS = {
     "password": os.getenv("DB_PASSWORD")
 }
 
-# 🔥 DB CONNECTION POOL
-DB_POOL = pool.SimpleConnectionPool(
+# ThreadedConnectionPool — thread-safe for FastAPI/uvicorn
+DB_POOL = pool.ThreadedConnectionPool(
     minconn=1,
     maxconn=10,
     **DB_PARAMS
 )
+
+
+def clear_sql_cache():
+    """Call after /refresh_data so stale SQL results are evicted."""
+    SQL_CACHE.clear()
+
+
+def _cache_key(question: str) -> str:
+    """Normalize question for cache key — strips punctuation and extra spaces."""
+    q = question.lower().strip()
+    q = re.sub(r'[^\w\s]', '', q)
+    q = re.sub(r'\s+', ' ', q)
+    return q
 
 # OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -47,13 +87,13 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 def extract_intent_llm(question: str):
     start = time.perf_counter()
-    cache_key = question.strip().lower()
+    cache_key = _cache_key(question)
 
     # ---------- INTENT CACHE ----------
-    if cache_key in INTENT_CACHE:
-        intent = dict(INTENT_CACHE[cache_key])
+    cached, hit = INTENT_CACHE.get(cache_key)
+    if hit:
         intent_ms = (time.perf_counter() - start) * 1000
-        return intent, intent_ms, True
+        return dict(cached), intent_ms, True
 
     prompt = f"""
 You are a STRICT intent extraction engine.
@@ -95,7 +135,7 @@ USER QUESTION:
     if intent.get("aggregation") is None:
         intent["aggregation"] = "avg"
 
-    INTENT_CACHE[cache_key] = dict(intent)
+    INTENT_CACHE.set(cache_key, dict(intent))
 
     intent_ms = (time.perf_counter() - start) * 1000
     return intent, intent_ms, False
@@ -212,23 +252,39 @@ def plan_grouping(intent: dict):
 # STEP 7: QUERY PLAN
 # ======================================================
 
-def build_query_plan(intent, filters, aggregation, grouping):
-    metric_map = {
-        "temperature":  "temperature",
-        "salinity":     "salinity",
-        "pressure":     "pressure",
-        "oxygen":       "doxy",
-        "chlorophyll":  "chla",
-        "backscatter":  "bbp700",
-        "ph":           "ph_in_situ_total",
-    }
+_METRIC_MAP = {
+    "temperature":  "temperature",
+    "salinity":     "salinity",
+    "pressure":     "pressure",
+    "oxygen":       "doxy",
+    "chlorophyll":  "chla",
+    "backscatter":  "bbp700",
+    "ph":           "ph_in_situ_total",
+}
 
+_BIO_COLUMNS = {"doxy", "chla", "bbp700", "ph_in_situ_total"}
+
+
+def validate_metric(intent: dict):
+    metric = intent.get("metric", "")
+    if metric not in _METRIC_MAP:
+        raise ValueError(
+            f"Unsupported metric: '{metric}'. "
+            f"Supported: {', '.join(sorted(_METRIC_MAP))}"
+        )
+
+
+def build_query_plan(intent, filters, aggregation, grouping):
     metric = intent["metric"]
-    if metric not in metric_map:
-        raise ValueError(f"Unsupported metric: {metric}")
+    column = _METRIC_MAP[metric]
+
+    # Bio columns: filter out NULL rows so aggregation is meaningful
+    filters = list(filters)
+    if column in _BIO_COLUMNS:
+        filters.append((column, "IS NOT NULL", None))
 
     return {
-        "column": metric_map[metric],
+        "column": column,
         "filters": filters,
         "aggregation": aggregation,
         "grouping": grouping
@@ -254,6 +310,8 @@ def generate_sql(plan: dict):
         for c, op, v in plan["filters"]:
             if op == "BETWEEN":
                 where.append(f"{c} BETWEEN {v[0]} AND {v[1]}")
+            elif op == "IS NOT NULL":
+                where.append(f"{c} IS NOT NULL")
             else:
                 where.append(f"{c} {op} {v}")
         sql.append("WHERE " + " AND ".join(where))
@@ -278,9 +336,9 @@ def validate_sql(sql: str):
 # ======================================================
 
 def execute_sql(sql: str):
-    # 🔥 SQL RESULT CACHE
-    if sql in SQL_CACHE:
-        return SQL_CACHE[sql], 0.0, True
+    cached, hit = SQL_CACHE.get(sql)
+    if hit:
+        return cached, 0.0, True
 
     start = time.perf_counter()
     conn = DB_POOL.getconn()
@@ -292,7 +350,7 @@ def execute_sql(sql: str):
         DB_POOL.putconn(conn)
 
     sql_ms = (time.perf_counter() - start) * 1000
-    SQL_CACHE[sql] = rows
+    SQL_CACHE.set(sql, rows)
     return rows, sql_ms, False
 
 # ======================================================
@@ -305,6 +363,7 @@ def main(user_question: str):
     intent, intent_ms, intent_cache_hit = extract_intent_llm(user_question)
     validate_intent(intent)
     intent = normalize_intent(intent, user_question)
+    validate_metric(intent)  # fail fast before any planning
 
     plan = build_query_plan(
         intent,
