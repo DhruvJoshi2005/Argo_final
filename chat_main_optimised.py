@@ -249,6 +249,18 @@ def plan_grouping(intent: dict):
     return f"(cycle_number / {int(m.group(1))})"
 
 # ======================================================
+# STEP 6b: QUERY MODE DETECTION (regex — no LLM call)
+# ======================================================
+
+def detect_query_mode(question: str) -> str:
+    q = question.lower()
+    if re.search(r'\b(average|avg|mean|max|maximum|min|minimum)\b', q):
+        return "aggregate"
+    if re.search(r'\b(show|list|points|stations|profiles|where|locations|floats)\b', q):
+        return "explore"
+    return "descriptive"   # default: "what is temperature around X"
+
+# ======================================================
 # STEP 7: QUERY PLAN
 # ======================================================
 
@@ -260,6 +272,16 @@ _METRIC_MAP = {
     "chlorophyll":  "chla",
     "backscatter":  "bbp700",
     "ph":           "ph_in_situ_total",
+}
+
+_METRIC_DISPLAY = {
+    "temperature":  "Temperature",
+    "salinity":     "Salinity",
+    "pressure":     "Pressure",
+    "oxygen":       "Dissolved oxygen",
+    "chlorophyll":  "Chlorophyll",
+    "backscatter":  "Backscatter",
+    "ph":           "pH",
 }
 
 _BIO_COLUMNS = {"doxy", "chla", "bbp700", "ph_in_situ_total"}
@@ -287,38 +309,72 @@ def build_query_plan(intent, filters, aggregation, grouping):
         "column": column,
         "filters": filters,
         "aggregation": aggregation,
-        "grouping": grouping
+        "grouping": grouping,
+        "query_mode": intent.get("_query_mode", "descriptive"),
     }
 
 # ======================================================
 # STEP 8: SQL GENERATION
+# Every branch returns count + bounding box (+ time range where
+# relevant) alongside the metric, so an answer is never a bare
+# number with no indication of how much data backs it.
 # ======================================================
 
-def generate_sql(plan: dict):
+def _build_where(filters: list) -> str:
+    if not filters:
+        return ""
+    where = []
+    for c, op, v in filters:
+        if op == "BETWEEN":
+            where.append(f"{c} BETWEEN {v[0]} AND {v[1]}")
+        elif op == "IS NOT NULL":
+            where.append(f"{c} IS NOT NULL")
+        else:
+            where.append(f"{c} {op} {v}")
+    return " AND ".join(where)
+
+
+def generate_sql(plan: dict) -> str:
     col = plan["column"]
-    agg = plan["aggregation"]
+    mode = plan["query_mode"]
+    where_clause = _build_where(plan["filters"])
 
-    if agg["apply"]:
-        select = f"SELECT {agg['type'].upper()}({col})"
-    else:
-        select = f"SELECT {col}"
+    if mode == "explore":
+        select = f"SELECT latitude, longitude, juld, pressure, platform_number, {col}"
+        sql = [select, "FROM float_measurements_flat"]
+        if where_clause:
+            sql.append(f"WHERE {where_clause}")
+        sql.append("ORDER BY juld DESC")
+        sql.append("LIMIT 15")
+        return "\n".join(sql)
 
-    sql = [select, "FROM float_measurements_flat"]
-
-    if plan["filters"]:
-        where = []
-        for c, op, v in plan["filters"]:
-            if op == "BETWEEN":
-                where.append(f"{c} BETWEEN {v[0]} AND {v[1]}")
-            elif op == "IS NOT NULL":
-                where.append(f"{c} IS NOT NULL")
-            else:
-                where.append(f"{c} {op} {v}")
-        sql.append("WHERE " + " AND ".join(where))
-
+    # aggregate + descriptive share the same rich summary SELECT
     if plan["grouping"]:
-        sql.append(f"GROUP BY {plan['grouping']}")
+        select = (
+            f"SELECT {plan['grouping']} AS bucket, "
+            f"AVG({col}) AS avg_val, MIN({col}) AS min_val, MAX({col}) AS max_val, "
+            f"COUNT({col}) AS n_obs, "
+            "MIN(latitude) AS lat_min, MAX(latitude) AS lat_max, "
+            "MIN(longitude) AS lon_min, MAX(longitude) AS lon_max"
+        )
+        sql = [select, "FROM float_measurements_flat"]
+        if where_clause:
+            sql.append(f"WHERE {where_clause}")
+        sql.append("GROUP BY bucket")
+        sql.append("ORDER BY bucket")
+        sql.append("LIMIT 50")
+        return "\n".join(sql)
 
+    select = (
+        f"SELECT AVG({col}) AS avg_val, MIN({col}) AS min_val, MAX({col}) AS max_val, "
+        f"COUNT({col}) AS n_obs, "
+        "MIN(latitude) AS lat_min, MAX(latitude) AS lat_max, "
+        "MIN(longitude) AS lon_min, MAX(longitude) AS lon_max, "
+        "MIN(juld) AS time_min, MAX(juld) AS time_max"
+    )
+    sql = [select, "FROM float_measurements_flat"]
+    if where_clause:
+        sql.append(f"WHERE {where_clause}")
     return "\n".join(sql)
 
 # ======================================================
@@ -354,6 +410,74 @@ def execute_sql(sql: str):
     return rows, sql_ms, False
 
 # ======================================================
+# STEP 10b: ANSWER FORMATTING
+# Mode-aware — a bare average is misleading over sparse,
+# geographically clustered float data, so every answer carries
+# count + spatial/temporal extent instead of a lone number.
+# ======================================================
+
+def _fmt(v, decimals=2):
+    if v is None:
+        return "n/a"
+    if isinstance(v, (int, float)):
+        return f"{v:.{decimals}f}"
+    return str(v)
+
+
+def _fmt_date(v):
+    return v.date() if v is not None else "unknown date"
+
+
+def format_answer(metric_label: str, rows, mode: str, grouped: bool) -> str:
+    if not rows:
+        return "No matching observations found for this query."
+
+    if mode == "explore":
+        lines = []
+        for lat, lon, juld, pressure, platform, val in rows[:15]:
+            lines.append(
+                f"- Float {platform} at ({_fmt(lat)}, {_fmt(lon)}), "
+                f"{_fmt_date(juld)}, "
+                f"pressure {_fmt(pressure)}: "
+                f"{metric_label}={_fmt(val)}"
+            )
+        return f"Found {len(rows)} matching profiles:\n" + "\n".join(lines)
+
+    if grouped:
+        lines = []
+        for bucket, avg_val, min_val, max_val, n_obs, lat_min, lat_max, lon_min, lon_max in rows:
+            if not n_obs or avg_val is None:
+                lines.append(f"- Bucket {bucket}: no data")
+                continue
+            lines.append(
+                f"- Bucket {bucket}: {metric_label} avg {_fmt(avg_val)} "
+                f"(range {_fmt(min_val)}-{_fmt(max_val)}), n={n_obs}, "
+                f"lat {_fmt(lat_min, 1)}-{_fmt(lat_max, 1)}, "
+                f"lon {_fmt(lon_min, 1)}-{_fmt(lon_max, 1)}"
+            )
+        return "\n".join(lines)
+
+    # single-row aggregate/descriptive summary
+    (avg_val, min_val, max_val, n_obs,
+     lat_min, lat_max, lon_min, lon_max, t_min, t_max) = rows[0]
+
+    if not n_obs or avg_val is None:
+        return "No matching observations found in this region for the given filters."
+
+    caveat = (
+        f" (based on only {n_obs} observations — limited data in this region)"
+        if n_obs < 20 else ""
+    )
+
+    return (
+        f"{metric_label} averages {_fmt(avg_val)} (range {_fmt(min_val)}-{_fmt(max_val)}) "
+        f"across {n_obs} observations, spanning lat {_fmt(lat_min, 1)}-{_fmt(lat_max, 1)}, "
+        f"lon {_fmt(lon_min, 1)}-{_fmt(lon_max, 1)}, "
+        f"from {_fmt_date(t_min)} to {_fmt_date(t_max)}."
+        f"{caveat}"
+    )
+
+# ======================================================
 # STEP 11: MAIN ENTRY
 # ======================================================
 
@@ -363,6 +487,7 @@ def main(user_question: str):
     intent, intent_ms, intent_cache_hit = extract_intent_llm(user_question)
     validate_intent(intent)
     intent = normalize_intent(intent, user_question)
+    intent["_query_mode"] = detect_query_mode(user_question)
     validate_metric(intent)  # fail fast before any planning
 
     plan = build_query_plan(
@@ -380,10 +505,13 @@ def main(user_question: str):
     rows, sql_ms, sql_cache_hit = execute_sql(sql)
 
     total_ms = (time.perf_counter() - total_start) * 1000
-    answer = rows[0][0] if rows else None
+    metric_label = _METRIC_DISPLAY.get(intent["metric"], intent["metric"].title())
+    answer = format_answer(
+        metric_label, rows, plan["query_mode"], grouped=bool(plan["grouping"])
+    )
 
     return {
-        "answer": str(answer) if answer is not None else "No data found",
+        "answer": answer,
         "sql": sql,   # 🔥 RETURNING GENERATED SQL
         "timing": {
             "intent_ms": round(intent_ms, 2),
