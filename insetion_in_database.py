@@ -8,8 +8,19 @@ ORDER:
 5. SPROF
 """
 
+import logging
 import shutil
 import os
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("argo_ingestion.log", encoding="utf-8"),
+    ],
+)
+logger = logging.getLogger(__name__)
 
 # ================= IMPORT ALL RUNNERS =================
 
@@ -40,48 +51,48 @@ def delete_folder(folder_path: str):
     """
     if os.path.exists(folder_path):
         shutil.rmtree(folder_path)
-        print(f"🗑️ Deleted folder: {folder_path}")
+        logger.info("Deleted folder: %s", folder_path)
     else:
-        print(f"⚠️ Folder not found (skipped): {folder_path}")
+        logger.warning("Folder not found (skipped): %s", folder_path)
 
 
 # ================= MAIN PIPELINE =================
 
 def run_all():
-    print("\n================= 🚀 STARTING FULL ARGO INGESTION =================")
+    logger.info("STARTING FULL ARGO INGESTION")
 
     # ---------- META ----------
-    print("\n🔹 STEP 1: META")
+    logger.info("STEP 1: META")
     meta_platforms = run_meta_ingestion()
     delete_folder("data_downloads/data_downloads_meta")
 
     # ---------- TECH ----------
-    print("\n🔹 STEP 2: TECH")
+    logger.info("STEP 2: TECH")
     tech_platforms = run_tech_ingestion()
     delete_folder("data_downloads/data_downloads_tech")
 
     # ---------- RTRAJ ----------
-    print("\n🔹 STEP 3: RTRAJ")
+    logger.info("STEP 3: RTRAJ")
     rtraj_platforms = run_rtraj_ingestion()
     delete_folder("data_downloads/data_downloads_rtraj")
 
     # ---------- PROF ----------
-    print("\n🔹 STEP 4: PROF")
+    logger.info("STEP 4: PROF")
     prof_platforms = run_prof_ingestion()
     delete_folder("data_downloads/data_downloads_prof")
 
     # ---------- SPROF ----------
-    print("\n🔹 STEP 5: SPROF")
+    logger.info("STEP 5: SPROF")
     sprof_platforms = run_sprof_ingestion()
     delete_folder("data_downloads/data_downloads_sprof")
 
     # ---------- FLAT TABLE ----------
     # Union all platforms touched in this run
     all_platforms = meta_platforms | tech_platforms | rtraj_platforms | prof_platforms | sprof_platforms
-    print(f"\n🔹 STEP 6: FLAT TABLE ({len(all_platforms)} platforms affected)")
+    logger.info("STEP 6: FLAT TABLE (%d platforms affected)", len(all_platforms))
     rebuild_flat_table(platforms=all_platforms if all_platforms else None)
 
-    print("\n================= ✅ ALL INGESTION COMPLETED =================")
+    logger.info("ALL INGESTION COMPLETED")
 
 
 # ================= ENTRY =================

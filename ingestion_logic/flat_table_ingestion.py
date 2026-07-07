@@ -1,8 +1,10 @@
+import logging
 import os
 import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 DB_PARAMS = {
     "host": os.getenv("DB_HOST", "localhost"),
@@ -71,7 +73,7 @@ def rebuild_flat_table(platforms=None):
 
             if platforms:
                 # Incremental: delete + re-insert only for affected platforms
-                print(f"\n🔹 Incremental flat table update for {len(platforms)} platform(s)...")
+                logger.info("Incremental flat table update for %d platform(s)...", len(platforms))
                 cur.execute(
                     "DELETE FROM float_measurements_flat WHERE platform_number = ANY(%s)",
                     (list(platforms),)
@@ -82,13 +84,13 @@ def rebuild_flat_table(platforms=None):
                 )
             else:
                 # Full rebuild (first run or manual trigger)
-                print("\n🔹 Full rebuild of float_measurements_flat...")
+                logger.info("Full rebuild of float_measurements_flat...")
                 cur.execute("TRUNCATE TABLE float_measurements_flat RESTART IDENTITY")
                 cur.execute(INSERT_SQL)
 
             cur.execute("SELECT COUNT(*) FROM float_measurements_flat")
             count = cur.fetchone()[0]
-            print(f"✅ float_measurements_flat: {count:,} rows total")
+            logger.info("float_measurements_flat: %s rows total", f"{count:,}")
 
     finally:
         conn.close()

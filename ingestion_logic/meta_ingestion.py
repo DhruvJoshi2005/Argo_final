@@ -1,3 +1,4 @@
+import logging
 import os
 import psycopg2
 import xarray as xr
@@ -6,6 +7,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 # ---------------- DB CONFIG ----------------
 DB_PARAMS = {
@@ -124,7 +126,7 @@ def upsert_float_meta(conn, data):
 # ---------------- META PROCESSOR ----------------
 def process_meta_file(conn, filepath):
     filename = os.path.basename(filepath)
-    ds = xr.open_dataset(filepath, decode_times=False)
+    ds = xr.open_dataset(filepath, decode_times=False, engine="netcdf4")
 
     try:
         platform_number = get_platform_number(ds, filename)
@@ -145,12 +147,12 @@ def process_meta_file(conn, filepath):
 
         upsert_float_meta(conn, data)
         conn.commit()
-        print(f"✅ META ingested: {platform_number}")
+        logger.info("META ingested: %s", platform_number)
         return platform_number
 
     except Exception as e:
         conn.rollback()
-        print(f"❌ META failed ({filename}): {e}")
+        logger.error("META failed (%s): %s", filename, e)
         return None
 
     finally:
@@ -169,7 +171,7 @@ def run_meta_ingestion():
                     platforms.add(pn)
     finally:
         conn.close()
-        print("🔒 DB connection closed")
+        logger.info("META DB connection closed")
     return platforms
 
 

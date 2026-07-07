@@ -3,6 +3,7 @@ import re
 import time
 import os
 from collections import OrderedDict
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from psycopg2 import pool
 from openai import OpenAI
@@ -45,11 +46,12 @@ SQL_CACHE = LRUCache(max_size=200)
 
 load_dotenv()
 DB_PARAMS = {
-    "host": os.getenv("DB_HOST", "127.0.0.1"),
-    "port": int(os.getenv("DB_PORT", 5432)),
+    "host":     os.getenv("DB_HOST", "127.0.0.1"),
+    "port":     int(os.getenv("DB_PORT", 5432)),
     "database": os.getenv("DB_NAME", "argo_final"),
-    "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD")
+    "user":     os.getenv("DB_USER", "postgres"),
+    "password": os.getenv("DB_PASSWORD"),
+    "sslmode":  os.getenv("DB_SSLMODE", "disable"),
 }
 
 # ThreadedConnectionPool — thread-safe for FastAPI/uvicorn
@@ -101,7 +103,10 @@ You are a STRICT intent extraction engine.
 RULES:
 - Output ONLY valid JSON
 - Allowed keys ONLY:
-  metric, geo, time, depth, aggregation
+  metric, geo, aggregation,
+  lat_min, lat_max, lon_min, lon_max,
+  depth_min, depth_max,
+  time_start, time_end
 - Use null if missing
 
 Supported metrics: temperature, salinity, pressure, oxygen, chlorophyll, backscatter, ph
@@ -109,6 +114,22 @@ Supported metrics: temperature, salinity, pressure, oxygen, chlorophyll, backsca
 If question is vague:
 - metric = temperature
 - aggregation = avg
+
+If the question contains explicit numeric coordinates (e.g. "lat 5-22", "longitude 77 to 94",
+"around 10N-20N 60E-80E"), extract them as lat_min, lat_max, lon_min, lon_max (numbers).
+Set geo = null in that case. If only a named region is given, use geo and leave lat/lon null.
+
+For depth: if a range is given ("between 100 and 300m"), use depth_min and depth_max.
+If a single depth is given ("at 200m", "200 dbar"), set depth_min = depth * 0.9, depth_max = depth * 1.1.
+Leave depth_min/depth_max null if no depth is mentioned.
+
+For time — extract as time_start and time_end (YYYY-MM-DD strings):
+- Single year "in 2024" → time_start="2024-01-01", time_end="2024-12-31"
+- Year range "between 2018 and 2020" or "from 2018 to 2020" → time_start="2018-01-01", time_end="2020-12-31"
+- Month+year "in January 2026" or "January 2026" → time_start="2026-01-01", time_end="2026-01-31"
+- "since 2022" or "after 2022" → time_start="2022-01-01", time_end=null
+- "before 2020" or "until 2020" → time_start=null, time_end="2020-12-31"
+- No time mentioned → time_start=null, time_end=null
 
 USER QUESTION:
 {question}
@@ -145,8 +166,22 @@ USER QUESTION:
 # STEP 2: INTENT VALIDATION
 # ======================================================
 
+def _safe_date_str(s) -> str | None:
+    """Validate that s is a YYYY-MM-DD string. Returns None if invalid."""
+    if not isinstance(s, str):
+        return None
+    try:
+        datetime.strptime(s, "%Y-%m-%d")
+        return s
+    except ValueError:
+        return None
+
+
 def validate_intent(intent: dict):
-    allowed = {"metric", "geo", "time", "depth", "aggregation"}
+    allowed = {"metric", "geo", "time", "depth", "aggregation",
+               "lat_min", "lat_max", "lon_min", "lon_max",
+               "depth_min", "depth_max",
+               "time_start", "time_end"}
     for k in intent:
         if k not in allowed:
             raise ValueError(f"Invalid intent key: {k}")
@@ -168,7 +203,10 @@ def normalize_intent(intent: dict, raw_question: str):
         "atlantic ocean": "geo_atlantic",
         "indian ocean": "geo_indian",
         "southern ocean": "geo_southern",
-        "arctic ocean": "geo_arctic"
+        "arctic ocean": "geo_arctic",
+        "arabian sea": "geo_arabian_sea",
+        "bay of bengal": "geo_bay_of_bengal",
+        "andaman sea": "geo_andaman_sea"
     }
 
     if intent.get("geo"):
@@ -199,6 +237,16 @@ def normalize_intent(intent: dict, raw_question: str):
 # STEP 4: FILTER PLANNING
 # ======================================================
 
+def _to_float(v):
+    """Safely convert an LLM-returned value to float. Returns None for dicts, None, bad strings."""
+    if v is None or isinstance(v, dict):
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
 def plan_filters(intent: dict):
     filters = []
 
@@ -210,20 +258,51 @@ def plan_filters(intent: dict):
         "geo_atlantic": (-60, 60, -70, 20),
         "geo_indian": (-60, 30, 20, 120),
         "geo_southern": (-90, -55, -180, 180),
-        "geo_arctic": (55, 90, -180, 180)
+        "geo_arctic": (55, 90, -180, 180),
+        "geo_arabian_sea": (8, 25, 50, 77),
+        "geo_bay_of_bengal": (5, 22, 77, 100),
+        "geo_andaman_sea": (5, 18, 92, 100)
     }
 
-    geo = intent.get("geo")
-    if geo in geo_boxes:
-        lat_min, lat_max, lon_min, lon_max = geo_boxes[geo]
-        filters.append(("latitude", "BETWEEN", (lat_min, lat_max)))
-        filters.append(("longitude", "BETWEEN", (lon_min, lon_max)))
+    # Explicit numeric coordinates take priority over named regions
+    e_lat_min = intent.get("lat_min")
+    e_lat_max = intent.get("lat_max")
+    e_lon_min = intent.get("lon_min")
+    e_lon_max = intent.get("lon_max")
 
-    if intent.get("time") is not None:
-        filters.append(("juld", "=", intent["time"]))
+    lat_min_f = _to_float(e_lat_min)
+    lat_max_f = _to_float(e_lat_max)
+    lon_min_f = _to_float(e_lon_min)
+    lon_max_f = _to_float(e_lon_max)
 
-    if intent.get("depth") is not None:
-        filters.append(("pressure", "=", intent["depth"]))
+    if lat_min_f is not None and lat_max_f is not None:
+        filters.append(("latitude", "BETWEEN", (lat_min_f, lat_max_f)))
+    if lon_min_f is not None and lon_max_f is not None:
+        filters.append(("longitude", "BETWEEN", (lon_min_f, lon_max_f)))
+
+    if lat_min_f is None and lat_max_f is None and lon_min_f is None and lon_max_f is None:
+        geo = intent.get("geo")
+        if geo in geo_boxes:
+            lat_min, lat_max, lon_min, lon_max = geo_boxes[geo]
+            filters.append(("latitude", "BETWEEN", (lat_min, lat_max)))
+            filters.append(("longitude", "BETWEEN", (lon_min, lon_max)))
+
+    t_start = _safe_date_str(intent.get("time_start"))
+    t_end   = _safe_date_str(intent.get("time_end"))
+    if t_start:
+        filters.append(("juld", ">=", t_start))
+    if t_end:
+        # Use exclusive upper bound (next day) so the full end date is included
+        excl = (datetime.strptime(t_end, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+        filters.append(("juld", "<", excl))
+
+    d_min = _to_float(intent.get("depth_min"))
+    d_max = _to_float(intent.get("depth_max"))
+    if d_min is not None and d_max is not None:
+        filters.append(("pressure", "BETWEEN", (d_min, d_max)))
+    elif _to_float(intent.get("depth")) is not None:
+        d = _to_float(intent["depth"])
+        filters.append(("pressure", "BETWEEN", (d * 0.9, d * 1.1)))
 
     return filters
 
@@ -329,6 +408,9 @@ def _build_where(filters: list) -> str:
             where.append(f"{c} BETWEEN {v[0]} AND {v[1]}")
         elif op == "IS NOT NULL":
             where.append(f"{c} IS NOT NULL")
+        elif op in (">=", "<=", ">", "<"):
+            # v is a validated date string — quote it for PostgreSQL
+            where.append(f"{c} {op} '{v}'")
         else:
             where.append(f"{c} {op} {v}")
     return " AND ".join(where)

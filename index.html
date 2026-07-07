@@ -999,6 +999,275 @@ body {
   .panel-header { flex-wrap: wrap; gap: 8px; }
   .panel-badge  { align-self: flex-end; }
 }
+
+/* =================== QUERY TABS =================== */
+.query-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.tab-btn {
+  background: rgba(6, 20, 42, 0.6);
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  border-radius: 100px;
+  color: var(--text-muted);
+  padding: 8px 18px;
+  font-size: 0.82rem;
+  font-family: var(--font);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab-btn:hover {
+  background: rgba(34, 211, 238, 0.08);
+  border-color: rgba(34, 211, 238, 0.4);
+  color: var(--cyan);
+}
+.tab-btn.active {
+  background: rgba(34, 211, 238, 0.14);
+  border-color: var(--cyan);
+  color: var(--cyan);
+  font-weight: 600;
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.1);
+}
+.query-category        { display: none; }
+.query-category.active { display: block; }
+.cat-desc {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* =================== DOWNLOAD BUTTON =================== */
+.download-btn {
+  align-self: flex-start;
+  background: rgba(34, 211, 238, 0.06);
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  border-radius: 8px;
+  color: var(--cyan);
+  padding: 5px 13px;
+  font-size: 0.76rem;
+  font-family: var(--font);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
+}
+.download-btn:hover:not(:disabled) {
+  background: rgba(34, 211, 238, 0.14);
+  border-color: var(--cyan);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(34, 211, 238, 0.15);
+}
+.download-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+@media (max-width: 640px) {
+  .query-tabs { gap: 6px; }
+  .tab-btn    { padding: 7px 13px; font-size: 0.78rem; }
+}
+
+/* =================== DOWNLOAD MODAL =================== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+}
+.modal-overlay.active { display: flex; }
+
+.modal-box {
+  background: #061422;
+  border: 1px solid rgba(34,211,238,0.3);
+  border-radius: 18px;
+  width: min(500px, 92vw);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.65), 0 0 50px rgba(34,211,238,0.07);
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn {
+  from { opacity:0; transform: scale(0.95) translateY(12px); }
+  to   { opacity:1; transform: scale(1)    translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.modal-header h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f0f9ff;
+}
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+.modal-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+.modal-body { padding: 20px 22px 22px; }
+
+.modal-query {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  font-style: italic;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.modal-stat-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.modal-stat {
+  flex: 1;
+  background: rgba(34,211,238,0.05);
+  border: 1px solid rgba(34,211,238,0.15);
+  border-radius: 10px;
+  padding: 12px 16px;
+  text-align: center;
+}
+.modal-stat-val {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cyan);
+  display: block;
+  margin-bottom: 4px;
+  text-shadow: 0 0 16px rgba(34,211,238,0.3);
+}
+.modal-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+}
+
+.modal-warning {
+  font-size: 0.78rem;
+  color: #fbbf24;
+  background: rgba(251,191,36,0.07);
+  border: 1px solid rgba(251,191,36,0.22);
+  border-radius: 8px;
+  padding: 9px 13px;
+  margin-bottom: 16px;
+  display: none;
+  line-height: 1.5;
+}
+.modal-warning.show { display: block; }
+
+.modal-options { display: flex; flex-direction: column; gap: 10px; }
+
+.modal-btn-full {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #0891b2, #22d3ee);
+  color: #010a14;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+  font-family: var(--font);
+}
+.modal-btn-full:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(34,211,238,0.32); }
+.modal-btn-full:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.modal-divider {
+  text-align: center;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  position: relative;
+  padding: 2px 0;
+}
+.modal-divider::before, .modal-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 38%;
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+}
+.modal-divider::before { left: 0; }
+.modal-divider::after  { right: 0; }
+
+.modal-custom { display: flex; gap: 8px; }
+.modal-custom input {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 13px;
+  font-size: 0.875rem;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 0;
+}
+.modal-custom input:focus { border-color: rgba(34,211,238,0.4); }
+.modal-custom input::placeholder { color: var(--text-dim); }
+.modal-btn-custom {
+  background: rgba(34,211,238,0.08);
+  border: 1px solid rgba(34,211,238,0.28);
+  border-radius: 8px;
+  color: var(--cyan);
+  padding: 9px 16px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  font-family: var(--font);
+}
+.modal-btn-custom:hover:not(:disabled) { background: rgba(34,211,238,0.15); border-color: var(--cyan); }
+.modal-btn-custom:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.modal-loading {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+.modal-loading::before {
+  content: '';
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(34,211,238,0.2);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -1033,7 +1302,7 @@ body {
   </nav>
 
   <div class="hero-content">
-    <div class="hero-badge">🤖 AI-Powered &nbsp;·&nbsp; 5.7M+ Measurements &nbsp;·&nbsp; Real Argo Data</div>
+    <div class="hero-badge">🤖 AI-Powered &nbsp;·&nbsp; 16.8M+ Measurements &nbsp;·&nbsp; Real Argo Data</div>
     <h1 class="hero-title">Ask the <span class="accent">Ocean</span><br/>Anything</h1>
     <p class="hero-sub">
       Natural language queries over real Argo float measurements —
@@ -1108,7 +1377,7 @@ body {
 
     <div class="impact-bar">
       <div class="impact-item">
-        <span class="impact-num">5.7M+</span>
+        <span class="impact-num">16.8M+</span>
         <span class="impact-label">Measurements</span>
       </div>
       <div class="impact-divider"></div>
@@ -1118,7 +1387,7 @@ body {
       </div>
       <div class="impact-divider"></div>
       <div class="impact-item">
-        <span class="impact-num">8</span>
+        <span class="impact-num">11+</span>
         <span class="impact-label">Ocean Regions</span>
       </div>
       <div class="impact-divider"></div>
@@ -1221,20 +1490,82 @@ body {
     <div class="section-label">Try It Yourself</div>
     <h2 class="section-title">Sample <span class="accent">Queries</span></h2>
     <p class="section-sub">
-      Click any query to fill both chat panels with the same question — then hit
+      Click any query to load it into the optimised chat — or hit
       <strong>Send to Both</strong> to compare performance side by side.
     </p>
 
-    <div class="queries-grid">
-      <button class="query-chip" onclick="fillBoth(this.textContent, event)">What is the average temperature at the equator?</button>
-      <button class="query-chip" onclick="fillBoth(this.textContent, event)">What is the maximum salinity in the Indian Ocean?</button>
-      <button class="query-chip" onclick="fillBoth(this.textContent, event)">What is the minimum pressure in the Southern Ocean?</button>
-      <button class="query-chip" onclick="fillBoth(this.textContent, event)">What is the average salinity at the equator?</button>
+    <div class="query-tabs">
+      <button class="tab-btn active" onclick="showCat(this,'region')">🗺️ By Region</button>
+      <button class="tab-btn" onclick="showCat(this,'depth')">🔽 By Depth</button>
+      <button class="tab-btn" onclick="showCat(this,'coords')">📍 Coordinates</button>
+      <button class="tab-btn" onclick="showCat(this,'bio')">🧪 Bio Params</button>
+      <button class="tab-btn" onclick="showCat(this,'combined')">⚡ Combined</button>
+      <button class="tab-btn" onclick="showCat(this,'time')">⏱️ By Time</button>
+    </div>
+
+    <div class="query-category active" id="cat-region">
+      <p class="cat-desc">Named ocean regions — bounding box filter applied automatically from your words</p>
+      <div class="queries-grid">
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is the average temperature in the Arabian Sea?">🌊 Avg temperature &mdash; Arabian Sea</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is the average salinity in the Bay of Bengal?">💧 Avg salinity &mdash; Bay of Bengal</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is the maximum temperature in the Indian Ocean?">🌡️ Max temperature &mdash; Indian Ocean</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen in the Andaman Sea?">🫧 Dissolved oxygen &mdash; Andaman Sea</button>
+      </div>
+    </div>
+
+    <div class="query-category" id="cat-depth">
+      <p class="cat-desc">Depth filters — uses ±10% pressure window around a target depth, or exact range</p>
+      <div class="queries-grid">
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at 200m depth?">🌡️ Temperature at 200 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity between 100m and 500m?">💧 Salinity &mdash; 100 m to 500 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen at 1000m depth?">🫧 Dissolved oxygen at 1000 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at 500m depth?">🌡️ Temperature at 500 m</button>
+      </div>
+    </div>
+
+    <div class="query-category" id="cat-coords">
+      <p class="cat-desc">Explicit lat/lon bounding boxes — the LLM extracts coordinates directly from your text</p>
+      <div class="queries-grid">
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at lat 5-22, lon 77-94?">📍 Temperature &mdash; lat 5–22, lon 77–94</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity at lat 10-15, lon 65-75?">📍 Salinity &mdash; lat 10–15, lon 65–75</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average temperature at lat 8-25, lon 50-77?">📍 Avg temperature &mdash; Arabian box</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen at lat 0-10, lon 60-90?">📍 Oxygen &mdash; equatorial Indian Ocean</button>
+      </div>
+    </div>
+
+    <div class="query-category" id="cat-bio">
+      <p class="cat-desc">BGC-Argo biological parameters — only floats with bio sensors are included in results</p>
+      <div class="queries-grid">
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average chlorophyll-a in the Indian Ocean?">🌿 Chlorophyll-a &mdash; Indian Ocean</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen in the Arabian Sea?">🫧 Dissolved oxygen &mdash; Arabian Sea</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is pH in the Bay of Bengal?">⚗️ pH &mdash; Bay of Bengal</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average backscatter in the Indian Ocean?">💡 Backscatter (bbp700) &mdash; Indian Ocean</button>
+      </div>
+    </div>
+
+    <div class="query-category" id="cat-combined">
+      <p class="cat-desc">Region + depth combined — the most precise queries; filters stack on top of each other</p>
+      <div class="queries-grid">
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="Arabian Sea temperature, depth 450 to 550 meters">⚡ Temperature &middot; Arabian Sea &middot; 450–550 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity in the Bay of Bengal between 200m and 800m?">⚡ Salinity &middot; Bay of Bengal &middot; 200–800 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at lat 12-18, lon 60-75 at 300m depth?">⚡ Temperature &middot; coord box &middot; 300 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="Arabian Sea dissolved oxygen, depth 500 to 2000 meters">⚡ Oxygen &middot; Arabian Sea &middot; 500–2000 m</button>
+      </div>
+    </div>
+
+    <div class="query-category" id="cat-time">
+      <p class="cat-desc">Filter by observation date — year, year range, month, or "since / after" a year</p>
+      <div class="queries-grid">
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average temperature in 2024?">📅 Avg temperature &mdash; year 2024</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity between 2018 and 2020?">📅 Salinity &mdash; 2018 to 2020</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average temperature in June 2026?">📅 Avg temperature &mdash; Jun 2026</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen since 2022?">📅 Dissolved oxygen &mdash; since 2022</button>
+      </div>
     </div>
 
     <div class="send-both-row">
       <button class="btn-primary" onclick="sendBoth()">⚡ Send to Both Panels</button>
-      <span class="send-both-hint">Sends the same query to both chats simultaneously</span>
+      <span class="send-both-hint">Runs the loaded query on both chats to compare performance</span>
     </div>
   </div>
 </section>
@@ -1408,6 +1739,31 @@ body {
   </div>
 </footer>
 
+<!-- =================== DOWNLOAD MODAL =================== -->
+<div id="csv-modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>⬇ Download CSV</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-query" id="modal-query"></div>
+      <div class="modal-stats" id="modal-stats">
+        <div class="modal-loading">Counting rows&hellip;</div>
+      </div>
+      <div class="modal-warning" id="modal-warning"></div>
+      <div class="modal-options" id="modal-options">
+        <button class="modal-btn-full" id="btn-full-download" onclick="doDownload(null)" disabled>Download All</button>
+        <div class="modal-divider">or choose how many rows</div>
+        <div class="modal-custom">
+          <input type="number" id="custom-rows" placeholder="e.g. 10000" min="1" />
+          <button class="modal-btn-custom" id="btn-custom-download" onclick="doDownload(document.getElementById('custom-rows').value)" disabled>Download N rows</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =================== OCEAN CANVAS =================== */
 (function() {
@@ -1487,7 +1843,23 @@ body {
   requestAnimationFrame(draw);
 })();
 
-/* =================== FILL BOTH INPUTS =================== */
+/* =================== CATEGORY TABS =================== */
+function showCat(btn, cat) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".query-category").forEach(c => c.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("cat-" + cat).classList.add("active");
+}
+
+/* =================== FILL OPTIMISED INPUT =================== */
+function fillOptimised(text, chip) {
+  document.getElementById("inputNew").value = text;
+  document.querySelectorAll(".query-chip").forEach(c => c.classList.remove("active"));
+  if (chip) chip.classList.add("active");
+  document.getElementById("chat").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* =================== FILL BOTH INPUTS (legacy) =================== */
 function fillBoth(text, event) {
   document.getElementById("inputOld").value = text;
   document.getElementById("inputNew").value = text;
@@ -1498,8 +1870,8 @@ function fillBoth(text, event) {
 
 /* =================== SEND TO BOTH =================== */
 function sendBoth() {
-  const q = document.getElementById("inputOld").value.trim()
-         || document.getElementById("inputNew").value.trim();
+  const q = document.getElementById("inputNew").value.trim()
+         || document.getElementById("inputOld").value.trim();
   if (!q) return;
   document.getElementById("inputOld").value = q;
   document.getElementById("inputNew").value = q;
@@ -1517,9 +1889,131 @@ function clearChat(type) {
     "No stats yet — send a message first";
 }
 
-/* =================== SEND CHAT =================== */
-const BACKEND_URL = window.BACKEND_URL || "https://argo-rn2r.onrender.com";
+/* =================== BACKEND URL =================== */
+const _h = window.location.hostname;
+const BACKEND_URL = window.BACKEND_URL ||
+  (_h === "" || _h === "localhost" || _h === "127.0.0.1"
+    ? "http://127.0.0.1:8000"
+    : "https://argo-rn2r.onrender.com");
 
+/* =================== DOWNLOAD MODAL =================== */
+let _modalQuestion = "";
+
+function openDownloadModal(question) {
+  _modalQuestion = question;
+
+  document.getElementById("modal-query").textContent = "“" + question + "”";
+  document.getElementById("modal-stats").innerHTML = '<div class="modal-loading">Counting rows…</div>';
+  document.getElementById("modal-warning").className = "modal-warning";
+  document.getElementById("btn-full-download").disabled = true;
+  document.getElementById("btn-full-download").textContent = "Download All";
+  document.getElementById("btn-custom-download").disabled = true;
+  document.getElementById("custom-rows").value = "";
+  document.getElementById("csv-modal").classList.add("active");
+
+  fetch(`${BACKEND_URL}/export/count`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.detail) throw new Error(data.detail);
+
+      const count  = data.count;
+      const mb     = data.estimated_mb;
+      const countF = count.toLocaleString();
+      const mbF    = mb < 1 ? Math.round(mb * 1024) + " KB" : mb.toFixed(1) + " MB";
+
+      document.getElementById("modal-stats").innerHTML = `
+        <div class="modal-stat-row">
+          <div class="modal-stat">
+            <span class="modal-stat-val">${countF}</span>
+            <span class="modal-stat-label">Rows</span>
+          </div>
+          <div class="modal-stat">
+            <span class="modal-stat-val">${mbF}</span>
+            <span class="modal-stat-label">Est. Size</span>
+          </div>
+        </div>`;
+
+      if (count > 500000) {
+        const warn = document.getElementById("modal-warning");
+        warn.textContent = "⚠️ Large dataset (" + countF + " rows). Download may take a minute. Consider using Custom rows for a quick sample.";
+        warn.className = "modal-warning show";
+      }
+
+      const fullBtn = document.getElementById("btn-full-download");
+      fullBtn.textContent = "Download All " + countF + " rows";
+      fullBtn.disabled = false;
+      document.getElementById("btn-custom-download").disabled = false;
+    })
+    .catch(e => {
+      document.getElementById("modal-stats").innerHTML =
+        `<div style="color:var(--red);font-size:0.82rem">✗ ${e.message}</div>`;
+    });
+}
+
+function closeModal() {
+  document.getElementById("csv-modal").classList.remove("active");
+}
+
+async function doDownload(limit) {
+  const fullBtn   = document.getElementById("btn-full-download");
+  const customBtn = document.getElementById("btn-custom-download");
+  const isCustom  = limit !== null;
+  const activeBtn = isCustom ? customBtn : fullBtn;
+  const orig      = activeBtn.textContent;
+
+  if (isCustom && (!limit || parseInt(limit) < 1)) {
+    document.getElementById("custom-rows").focus();
+    return;
+  }
+
+  fullBtn.disabled   = true;
+  customBtn.disabled = true;
+  activeBtn.textContent = "⏳ Preparing…";
+
+  try {
+    const body = { question: _modalQuestion };
+    if (isCustom) body.limit = parseInt(limit);
+
+    const res = await fetch(`${BACKEND_URL}/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Export failed" }));
+      throw new Error(err.detail || "Export failed");
+    }
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    const cd    = res.headers.get("Content-Disposition") || "";
+    const match = cd.match(/filename=([^\s;]+)/);
+    a.download  = match ? match[1] : "argo_data.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    activeBtn.textContent = "✓ Downloaded!";
+    setTimeout(() => closeModal(), 1600);
+  } catch (e) {
+    activeBtn.textContent = "✗ " + e.message;
+    setTimeout(() => {
+      activeBtn.textContent  = orig;
+      fullBtn.disabled   = false;
+      customBtn.disabled = false;
+    }, 3500);
+  }
+}
+
+/* =================== SEND CHAT =================== */
 function sendChat(type) {
   const inputEl  = document.getElementById(type === "old" ? "inputOld"  : "inputNew");
   const chatEl   = document.getElementById(type === "old" ? "chatOld"   : "chatNew");
@@ -1534,7 +2028,7 @@ function sendChat(type) {
   if (empty) empty.remove();
 
   const userMsg = document.createElement("div");
-  userMsg.className = "msg-user";
+  userMsg.className   = "msg-user";
   userMsg.textContent = question;
   chatEl.appendChild(userMsg);
   inputEl.value = "";
@@ -1557,14 +2051,23 @@ function sendChat(type) {
 
       if (data.error) {
         const err = document.createElement("div");
-        err.className = "msg-error";
+        err.className   = "msg-error";
         err.textContent = "⚠️ " + data.error;
         chatEl.appendChild(err);
       } else {
         const bot = document.createElement("div");
-        bot.className = "msg-bot";
+        bot.className   = "msg-bot";
         bot.textContent = "🌊 " + data.answer;
         chatEl.appendChild(bot);
+
+        // Download CSV button — optimised panel only
+        if (type === "new") {
+          const dlBtn = document.createElement("button");
+          dlBtn.className   = "download-btn";
+          dlBtn.textContent = "⬇ Download CSV";
+          dlBtn.onclick     = () => openDownloadModal(question);
+          chatEl.appendChild(dlBtn);
+        }
       }
 
       chatEl.scrollTop = chatEl.scrollHeight;
@@ -1589,7 +2092,7 @@ function sendChat(type) {
     .catch(() => {
       loading.remove();
       const err = document.createElement("div");
-      err.className = "msg-error";
+      err.className   = "msg-error";
       err.textContent = "⚠️ Connection error — is the backend running?";
       chatEl.appendChild(err);
       chatEl.scrollTop = chatEl.scrollHeight;

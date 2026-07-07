@@ -1,3 +1,4 @@
+import logging
 import os
 import psycopg2
 import xarray as xr
@@ -7,6 +8,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 # ================= CONFIG =================
 DB_PARAMS = {
@@ -53,6 +55,15 @@ def juld_to_timestamp(juld):
     except Exception:
         return None
 
+def safe_position(lat, lon, qc):
+    """Only trust a position when QC marks it good ('1') or probably good ('2')."""
+    lat = safe_float(lat)
+    lon = safe_float(lon)
+    qc = safe_str(qc)
+    if lat is None or lon is None or qc not in ("1", "2"):
+        return None, None
+    return lat, lon
+
 # ================= PLATFORM NUMBER (FINAL) =================
 def get_platform_number(ds, filename):
     # 1. Variable
@@ -88,11 +99,11 @@ def ensure_float_exists(conn, platform_number):
         )
 
 # ================= CYCLE =================
-def get_or_create_cycle(conn, platform_number, cycle_number, juld):
+def get_or_create_cycle(conn, platform_number, cycle_number, juld, lat, lon):
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id
+            SELECT id, latitude, longitude
             FROM float_cycles
             WHERE platform_number = %s
               AND cycle_number = %s
@@ -101,7 +112,21 @@ def get_or_create_cycle(conn, platform_number, cycle_number, juld):
         )
         r = cur.fetchone()
         if r:
-            return r[0]
+            cycle_id, existing_lat, existing_lon = r
+            if (existing_lat is None or existing_lon is None) and lat is not None and lon is not None:
+                # Self-heal: an earlier ingestion pass (e.g. RTRAJ with no match for
+                # this cycle) may have left this cycle without a position. Sprof
+                # carries its own LATITUDE/LONGITUDE, so fill it in now.
+                cur.execute(
+                    """
+                    UPDATE float_cycles
+                    SET latitude = %s, longitude = %s
+                    WHERE id = %s
+                      AND (latitude IS NULL OR longitude IS NULL)
+                    """,
+                    (lat, lon, cycle_id)
+                )
+            return cycle_id
 
         juld_ts = juld_to_timestamp(juld)
 
@@ -109,10 +134,10 @@ def get_or_create_cycle(conn, platform_number, cycle_number, juld):
             """
             INSERT INTO float_cycles
             (platform_number, cycle_number, juld, latitude, longitude, source)
-            VALUES (%s,%s,%s,NULL,NULL,'PROFILE_ONLY')
+            VALUES (%s,%s,%s,%s,%s,'PROFILE_ONLY')
             RETURNING id
             """,
-            (platform_number, int(cycle_number), juld_ts)
+            (platform_number, int(cycle_number), juld_ts, lat, lon)
         )
         return cur.fetchone()[0]
 
@@ -203,7 +228,7 @@ def derive_data_modes(ds, n_profiles):
 
 # ================= SPROF =================
 def process_sprof_file(conn, path):
-    print(f"\n📂 Processing {os.path.basename(path)}")
+    logger.info("Processing %s", os.path.basename(path))
 
     ds = xr.open_dataset(path, decode_times=False, engine="netcdf4")
 
@@ -225,20 +250,33 @@ def process_sprof_file(conn, path):
     julds = ds["JULD"].values
     directions = ds["DIRECTION"].values if "DIRECTION" in ds else [None] * pres.shape[0]
 
+    # _Sprof.nc carries its own LATITUDE/LONGITUDE/POSITION_QC, one entry per
+    # profile, aligned with CYCLE_NUMBER on the same N_PROF axis as PRES/TEMP.
+    lat_arr = ds["LATITUDE"].values if "LATITUDE" in ds else None
+    lon_arr = ds["LONGITUDE"].values if "LONGITUDE" in ds else None
+    pos_qc_arr = ds["POSITION_QC"].values if "POSITION_QC" in ds else None
+
     bio = {p: ds[p].values for p in BIO_PARAMS if p in ds}
     bio_qc = {p: ds[f"{p}_QC"].values for p in BIO_PARAMS if f"{p}_QC" in ds}
 
     n_profiles, n_levels = pres.shape
     data_modes = derive_data_modes(ds, n_profiles)
 
-    print(f"   Profiles={n_profiles}, Levels={n_levels}")
+    logger.info("  Profiles=%d, Levels=%d", n_profiles, n_levels)
 
     for p in range(n_profiles):
+        lat, lon = safe_position(
+            lat_arr[p] if lat_arr is not None else None,
+            lon_arr[p] if lon_arr is not None else None,
+            pos_qc_arr[p] if pos_qc_arr is not None else None,
+        )
         cycle_id = get_or_create_cycle(
             conn,
             platform_number,
             cycles[p],
-            julds[p]
+            julds[p],
+            lat,
+            lon
         )
 
         direction = safe_str(directions[p])
@@ -284,7 +322,7 @@ def process_sprof_file(conn, path):
         if rows:
             insert_profile_levels(conn, profile_id, rows)
 
-        print(f"   🔁 Cycle {int(cycles[p])} | {action} | {len(rows)} levels")
+        logger.debug("  Cycle %d | %s | %d levels", int(cycles[p]), action, len(rows))
 
     ds.close()
     return platform_number
@@ -301,7 +339,7 @@ def run():
                     platforms.add(pn)
     finally:
         conn.close()
-        print("\n🔒 DB connection closed")
+        logger.info("SPROF DB connection closed")
     return platforms
 
 if __name__ == "__main__":

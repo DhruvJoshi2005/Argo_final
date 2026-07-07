@@ -1,3 +1,4 @@
+import logging
 import os
 import psycopg2
 import xarray as xr
@@ -6,6 +7,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 DB_PARAMS = {
     "host": os.getenv("DB_HOST", "localhost"),
@@ -38,9 +40,15 @@ def get_platform_number(ds, filename):
     return ds.attrs.get("PLATFORM_NUMBER", filename.split("_")[0])
 
 
-def safe_float(v, default=0.0):
+def safe_float(v, default=None):
+    # NOTE: previously defaulted to 0.0 and had no NaN/inf guard, so masked
+    # LATITUDE/LONGITUDE fill values could silently become 0.0 ("null island")
+    # instead of a missing value.
     try:
-        return float(v)
+        v = float(v)
+        if np.isnan(v) or np.isinf(v):
+            return default
+        return v
     except Exception:
         return default
 
@@ -59,8 +67,38 @@ def safe_array_value(arr, idx, default=None):
     return arr[idx]
 
 
-def parse_juld_fallback(cycle_number):
-    return datetime(1950, 1, 1) + timedelta(days=int(cycle_number))
+def safe_position(lat, lon, qc):
+    """Only trust a position when QC marks it good ('1') or probably good ('2')."""
+    lat = safe_float(lat)
+    lon = safe_float(lon)
+    qc = safe_str(qc)
+    if lat is None or lon is None or qc not in ("1", "2"):
+        return None, None
+    return lat, lon
+
+
+_ARGO_MIN_DATE = datetime(2000, 1, 1)
+
+def safe_juld(juld_raw):
+    """Convert raw JULD (days since 1950-01-01) to timestamp.
+    Returns None for NaN/inf, zero, or results before 2000 (bad source data)."""
+    try:
+        j = float(juld_raw)
+        if np.isnan(j) or np.isinf(j) or j <= 0:
+            return None
+        ts = datetime(1950, 1, 1) + timedelta(days=j)
+        return ts if ts >= _ARGO_MIN_DATE else None
+    except Exception:
+        return None
+
+
+def safe_cycle_int(c):
+    """Convert a CYCLE_NUMBER value to int, returning None for NaN/inf/bad values."""
+    try:
+        v = float(c)
+        return None if (np.isnan(v) or np.isinf(v)) else int(v)
+    except Exception:
+        return None
 
 
 # ================= RTRAJ PROCESSOR =================
@@ -74,11 +112,11 @@ def process_rtraj_file(conn, filepath):
 
         cycle_arr = ds["CYCLE_NUMBER"].values
 
-        # robust cycle extraction
         cycles = sorted({
-            int(c)
-            for c in cycle_arr
-            if c is not None and not np.ma.is_masked(c) and int(c) >= 0
+            v for c in cycle_arr
+            if c is not None and not np.ma.is_masked(c)
+            for v in [safe_cycle_int(c)]
+            if v is not None and v >= 0
         })
 
         lat_arr = ds["LATITUDE"].values if "LATITUDE" in ds else None
@@ -86,18 +124,55 @@ def process_rtraj_file(conn, filepath):
         qc_arr  = ds["POSITION_QC"].values if "POSITION_QC" in ds else None
         dm_arr  = ds["DATA_MODE"].values if "DATA_MODE" in ds else None
 
-        n_cycles = len(lat_arr) if lat_arr is not None else 0
+        # LATITUDE/LONGITUDE/POSITION_QC are indexed by N_MEASUREMENT (one row per
+        # trajectory/GPS fix), NOT by cycle — CYCLE_NUMBER repeats across many rows
+        # per cycle, so a cycle number can't be used as a direct array index into
+        # them. Walk all measurement rows once and keep the last QC-good ('1'/'2')
+        # position seen per cycle (rows are in chronological order).
+        measurement_aligned = (
+            lat_arr is not None and lon_arr is not None
+            and len(lat_arr) == len(cycle_arr) and len(lon_arr) == len(cycle_arr)
+        )
+        # DATA_MODE is documented as per-cycle in the Argo trajectory spec, unlike
+        # LATITUDE/LONGITUDE — only treat it as per-measurement if its length
+        # actually matches, otherwise leave it unset rather than guess.
+        dm_per_measurement = dm_arr is not None and len(dm_arr) == len(cycle_arr)
+
+        per_cycle = {}  # cycle_number -> {"lat", "lon", "position_qc", "data_mode"}
+        for i, c in enumerate(cycle_arr):
+            if c is None or np.ma.is_masked(c):
+                continue
+            c = safe_cycle_int(c)
+            if c is None or c < 0:
+                continue
+            entry = per_cycle.setdefault(
+                c, {"lat": None, "lon": None, "position_qc": None, "data_mode": None}
+            )
+
+            if measurement_aligned:
+                lat, lon = safe_position(
+                    safe_array_value(lat_arr, i),
+                    safe_array_value(lon_arr, i),
+                    safe_array_value(qc_arr, i) if qc_arr is not None else None,
+                )
+                if lat is not None and lon is not None:
+                    entry["lat"] = lat
+                    entry["lon"] = lon
+                    entry["position_qc"] = safe_str(safe_array_value(qc_arr, i)) if qc_arr is not None else None
+
+            if dm_per_measurement:
+                dm = safe_str(safe_array_value(dm_arr, i))
+                if dm:
+                    entry["data_mode"] = dm
 
         for cycle in cycles:
-            cycle_index = min(cycle, n_cycles - 1) if n_cycles > 0 else 0
-
-            lat = safe_float(safe_array_value(lat_arr, cycle_index), 0.0)
-            lon = safe_float(safe_array_value(lon_arr, cycle_index), 0.0)
+            entry = per_cycle.get(cycle, {})
+            lat = entry.get("lat")
+            lon = entry.get("lon")
+            position_qc = entry.get("position_qc")
+            data_mode = entry.get("data_mode")
 
             juld = parse_juld_fallback(cycle)
-
-            position_qc = safe_str(safe_array_value(qc_arr, cycle_index))
-            data_mode   = safe_str(safe_array_value(dm_arr, cycle_index))
 
             with conn.cursor() as cur:
                 cur.execute(
@@ -105,8 +180,10 @@ def process_rtraj_file(conn, filepath):
                     INSERT INTO float_cycles
                     (platform_number, cycle_number, juld, latitude, longitude, position_qc, data_mode)
                     VALUES (%s,%s,%s,%s,%s,%s,%s)
-                    ON CONFLICT (platform_number, cycle_number)
-                    DO NOTHING
+                    ON CONFLICT (platform_number, cycle_number) DO UPDATE
+                    SET latitude  = COALESCE(float_cycles.latitude, EXCLUDED.latitude),
+                        longitude = COALESCE(float_cycles.longitude, EXCLUDED.longitude)
+                    WHERE float_cycles.latitude IS NULL OR float_cycles.longitude IS NULL
                     """,
                     (
                         platform_number,
@@ -119,11 +196,11 @@ def process_rtraj_file(conn, filepath):
                     )
                 )
 
-        print(f"✅ RTRAJ ingested: {platform_number}")
+        logger.info("RTRAJ ingested: %s", platform_number)
         return platform_number
 
     except Exception as e:
-        print(f"❌ RTRAJ failed ({filename}): {e}")
+        logger.error("RTRAJ failed (%s): %s", filename, e)
         return None
 
     finally:
@@ -142,7 +219,7 @@ def run_rtraj_ingestion():
                     platforms.add(pn)
     finally:
         conn.close()
-        print("🔒 DB connection closed")
+        logger.info("RTRAJ DB connection closed")
     return platforms
 
 

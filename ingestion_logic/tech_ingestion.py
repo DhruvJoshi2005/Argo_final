@@ -1,3 +1,4 @@
+import logging
 import os
 import psycopg2
 import xarray as xr
@@ -6,6 +7,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 # ---------------- DB CONFIG ----------------
 DB_PARAMS = {
@@ -171,12 +173,12 @@ def process_tech_file(conn, filepath):
 
         upsert_float_tech(conn, data)
         conn.commit()
-        print(f"✅ TECH ingested: {platform_number}")
+        logger.info("TECH ingested: %s", platform_number)
         return platform_number
 
     except Exception as e:
         conn.rollback()
-        print(f"❌ TECH failed ({filename}): {e}")
+        logger.error("TECH failed (%s): %s", filename, e)
         return None
 
     finally:
@@ -195,7 +197,7 @@ def run_tech_ingestion():
                     platforms.add(pn)
     finally:
         conn.close()
-        print("🔒 DB connection closed")
+        logger.info("TECH DB connection closed")
     return platforms
 
 

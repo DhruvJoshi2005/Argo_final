@@ -1,11 +1,14 @@
+import logging
 import os
 import psycopg2
 import xarray as xr
 import numpy as np
 import json
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 # ================= CONFIG =================
 DB_PARAMS = {
@@ -46,12 +49,40 @@ def safe_str(v):
     return s if s not in ("", "nan", "None") else None
 
 
+def juld_to_timestamp(juld):
+    try:
+        j = float(juld)
+        if np.isnan(j):
+            return None
+        return datetime(1950, 1, 1) + timedelta(days=j)
+    except Exception:
+        return None
+
+
+def safe_position(lat, lon, qc):
+    """Only trust a position when QC marks it good ('1') or probably good ('2')."""
+    lat = safe_float(lat)
+    lon = safe_float(lon)
+    qc = safe_str(qc)
+    if lat is None or lon is None or qc not in ("1", "2"):
+        return None, None
+    return lat, lon
+
+
 # ================= DB UTILS =================
-def get_cycle_id(conn, platform_number, cycle_number):
+def ensure_float_exists(conn, platform_number):
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO floats (platform_number) VALUES (%s) ON CONFLICT DO NOTHING",
+            (platform_number,)
+        )
+
+
+def get_or_create_cycle(conn, platform_number, cycle_number, juld, lat, lon):
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id
+            SELECT id, latitude, longitude
             FROM float_cycles
             WHERE platform_number = %s
               AND cycle_number = %s
@@ -59,7 +90,35 @@ def get_cycle_id(conn, platform_number, cycle_number):
             (platform_number, int(cycle_number))
         )
         r = cur.fetchone()
-        return r[0] if r else None
+        if r:
+            cycle_id, existing_lat, existing_lon = r
+            if (existing_lat is None or existing_lon is None) and lat is not None and lon is not None:
+                # Self-heal: an earlier ingestion pass (e.g. RTRAJ with no match for
+                # this cycle) may have left this cycle without a position. PROF/SPROF
+                # carry their own LATITUDE/LONGITUDE, so fill it in now.
+                cur.execute(
+                    """
+                    UPDATE float_cycles
+                    SET latitude = %s, longitude = %s
+                    WHERE id = %s
+                      AND (latitude IS NULL OR longitude IS NULL)
+                    """,
+                    (lat, lon, cycle_id)
+                )
+            return cycle_id
+
+        juld_ts = juld_to_timestamp(juld)
+
+        cur.execute(
+            """
+            INSERT INTO float_cycles
+            (platform_number, cycle_number, juld, latitude, longitude, source)
+            VALUES (%s,%s,%s,%s,%s,'PROFILE_ONLY')
+            RETURNING id
+            """,
+            (platform_number, int(cycle_number), juld_ts, lat, lon)
+        )
+        return cur.fetchone()[0]
 
 
 def get_existing_profile_id(conn, cycle_id, profile_type, direction):
@@ -135,11 +194,12 @@ def insert_profile_levels(conn, profile_id, rows):
 # ================= MAIN PROCESSOR =================
 def process_prof_file(conn, path):
     fname = os.path.basename(path)
-    print(f"\n📂 Processing {fname}")
+    logger.info("Processing %s", fname)
 
     ds = xr.open_dataset(path, decode_times=False, engine="netcdf4")
 
     platform_number = str(ds.attrs.get("PLATFORM_NUMBER", fname.split("_")[0]))
+    ensure_float_exists(conn, platform_number)
 
     pres = ds["PRES"].values
     temp = ds["TEMP"].values
@@ -152,15 +212,30 @@ def process_prof_file(conn, path):
     cycles = ds["CYCLE_NUMBER"].values
     directions = ds["DIRECTION"].values
     data_modes = ds["DATA_MODE"].values
+    julds = ds["JULD"].values if "JULD" in ds else None
+
+    # _prof.nc carries its own LATITUDE/LONGITUDE/POSITION_QC, one entry per
+    # profile, aligned with CYCLE_NUMBER on the same N_PROF axis as TEMP/PSAL.
+    lat_arr = ds["LATITUDE"].values if "LATITUDE" in ds else None
+    lon_arr = ds["LONGITUDE"].values if "LONGITUDE" in ds else None
+    pos_qc_arr = ds["POSITION_QC"].values if "POSITION_QC" in ds else None
 
     n_profiles, n_levels = pres.shape
-    print(f"   Profiles={n_profiles}, Levels={n_levels}")
+    logger.info("  Profiles=%d, Levels=%d", n_profiles, n_levels)
 
     for p in range(n_profiles):
         cycle_number = cycles[p]
-        cycle_id = get_cycle_id(conn, platform_number, cycle_number)
-        if cycle_id is None:
-            continue
+
+        lat, lon = safe_position(
+            lat_arr[p] if lat_arr is not None else None,
+            lon_arr[p] if lon_arr is not None else None,
+            pos_qc_arr[p] if pos_qc_arr is not None else None,
+        )
+        juld = julds[p] if julds is not None else None
+
+        # Creates the cycle with a real position if RTRAJ hasn't produced one
+        # yet, instead of skipping the whole profile.
+        cycle_id = get_or_create_cycle(conn, platform_number, cycle_number, juld, lat, lon)
 
         direction = safe_str(directions[p])
         data_mode = safe_str(data_modes[p])
@@ -201,9 +276,7 @@ def process_prof_file(conn, path):
         if rows:
             insert_profile_levels(conn, profile_id, rows)
 
-        print(
-            f"   🔁 Cycle {int(cycle_number)} | {action} | {len(rows)} levels"
-        )
+        logger.debug("  Cycle %d | %s | %d levels", int(cycle_number), action, len(rows))
 
     ds.close()
     return platform_number
@@ -221,7 +294,7 @@ def run():
                     platforms.add(pn)
     finally:
         conn.close()
-        print("\n🔒 DB connection closed")
+        logger.info("PROF DB connection closed")
     return platforms
 
 
