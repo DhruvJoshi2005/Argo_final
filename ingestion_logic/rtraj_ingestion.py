@@ -123,22 +123,24 @@ def process_rtraj_file(conn, filepath):
         lon_arr = ds["LONGITUDE"].values if "LONGITUDE" in ds else None
         qc_arr  = ds["POSITION_QC"].values if "POSITION_QC" in ds else None
         dm_arr  = ds["DATA_MODE"].values if "DATA_MODE" in ds else None
+        juld_arr = ds["JULD"].values if "JULD" in ds else None
 
-        # LATITUDE/LONGITUDE/POSITION_QC are indexed by N_MEASUREMENT (one row per
-        # trajectory/GPS fix), NOT by cycle — CYCLE_NUMBER repeats across many rows
-        # per cycle, so a cycle number can't be used as a direct array index into
-        # them. Walk all measurement rows once and keep the last QC-good ('1'/'2')
-        # position seen per cycle (rows are in chronological order).
+        # LATITUDE/LONGITUDE/POSITION_QC/JULD are indexed by N_MEASUREMENT (one row
+        # per trajectory/GPS fix), NOT by cycle — CYCLE_NUMBER repeats across many
+        # rows per cycle, so a cycle number can't be used as a direct array index
+        # into them. Walk all measurement rows once and keep the last QC-good
+        # ('1'/'2') position (and its JULD) seen per cycle (rows are chronological).
         measurement_aligned = (
             lat_arr is not None and lon_arr is not None
             and len(lat_arr) == len(cycle_arr) and len(lon_arr) == len(cycle_arr)
         )
+        juld_per_measurement = juld_arr is not None and len(juld_arr) == len(cycle_arr)
         # DATA_MODE is documented as per-cycle in the Argo trajectory spec, unlike
         # LATITUDE/LONGITUDE — only treat it as per-measurement if its length
         # actually matches, otherwise leave it unset rather than guess.
         dm_per_measurement = dm_arr is not None and len(dm_arr) == len(cycle_arr)
 
-        per_cycle = {}  # cycle_number -> {"lat", "lon", "position_qc", "data_mode"}
+        per_cycle = {}  # cycle_number -> {"lat", "lon", "position_qc", "data_mode", "juld"}
         for i, c in enumerate(cycle_arr):
             if c is None or np.ma.is_masked(c):
                 continue
@@ -146,7 +148,7 @@ def process_rtraj_file(conn, filepath):
             if c is None or c < 0:
                 continue
             entry = per_cycle.setdefault(
-                c, {"lat": None, "lon": None, "position_qc": None, "data_mode": None}
+                c, {"lat": None, "lon": None, "position_qc": None, "data_mode": None, "juld": None}
             )
 
             if measurement_aligned:
@@ -159,6 +161,8 @@ def process_rtraj_file(conn, filepath):
                     entry["lat"] = lat
                     entry["lon"] = lon
                     entry["position_qc"] = safe_str(safe_array_value(qc_arr, i)) if qc_arr is not None else None
+                    if juld_per_measurement:
+                        entry["juld"] = safe_juld(safe_array_value(juld_arr, i))
 
             if dm_per_measurement:
                 dm = safe_str(safe_array_value(dm_arr, i))
@@ -172,7 +176,7 @@ def process_rtraj_file(conn, filepath):
             position_qc = entry.get("position_qc")
             data_mode = entry.get("data_mode")
 
-            juld = parse_juld_fallback(cycle)
+            juld = entry.get("juld")
 
             with conn.cursor() as cur:
                 cur.execute(

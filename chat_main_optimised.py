@@ -54,12 +54,17 @@ DB_PARAMS = {
     "sslmode":  os.getenv("DB_SSLMODE", "disable"),
 }
 
-# ThreadedConnectionPool — thread-safe for FastAPI/uvicorn
-DB_POOL = pool.ThreadedConnectionPool(
-    minconn=1,
-    maxconn=10,
-    **DB_PARAMS
-)
+# ThreadedConnectionPool — thread-safe for FastAPI/uvicorn.
+# Created lazily on first query, not at import time, so importing this module
+# (e.g. in tests, or in `main.py` for other endpoints) never requires a live DB.
+_DB_POOL = None
+
+
+def _get_pool():
+    global _DB_POOL
+    if _DB_POOL is None:
+        _DB_POOL = pool.ThreadedConnectionPool(minconn=1, maxconn=10, **DB_PARAMS)
+    return _DB_POOL
 
 
 def clear_sql_cache():
@@ -479,13 +484,14 @@ def execute_sql(sql: str):
         return cached, 0.0, True
 
     start = time.perf_counter()
-    conn = DB_POOL.getconn()
+    db_pool = _get_pool()
+    conn = db_pool.getconn()
     try:
         with conn.cursor() as cur:
             cur.execute(sql)
             rows = cur.fetchall()
     finally:
-        DB_POOL.putconn(conn)
+        db_pool.putconn(conn)
 
     sql_ms = (time.perf_counter() - start) * 1000
     SQL_CACHE.set(sql, rows)

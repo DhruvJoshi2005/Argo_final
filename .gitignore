@@ -16,6 +16,12 @@ __pycache__/
 *.log
 download_log.json
 
+# data dumps / exports (large, regenerate via export_neon.py)
+*.sql
+
+# test cache
+.pytest_cache/
+
 # OS
 .DS_Store
 Thumbs.db
