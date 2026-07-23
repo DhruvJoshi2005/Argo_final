@@ -1927,9 +1927,9 @@ const BACKEND_URL = window.BACKEND_URL ||
    to sleep after ~15 min idle. Hitting their URLs wakes them, so this button
    fires a wake-up request at both and opens the Grafana dashboard. */
 const PROMETHEUS_URL = "https://argo-prometheus.onrender.com";
+// Grafana Cloud "public dashboard" link — opens for anyone, no login required.
 const GRAFANA_DASHBOARD_URL =
-  "https://glowingpizza493.grafana.net/d/argo-monitoring/argo-e28094-api-monitoring" +
-  "?orgId=1&from=now-15m&to=now&refresh=5s";
+  "https://glowingpizza493.grafana.net/public-dashboards/e6dd7e7265ac4a1b9719508ce27aad08";
 
 function openMonitoring() {
   const status = document.getElementById("monitor-status");
