@@ -43,20 +43,33 @@ def download_file(file_url, dest_path, retries=3):
     for attempt in range(1, retries + 1):
         try:
             headers = {}
-            mode = "wb"
             if os.path.exists(dest_path):
                 pos = os.path.getsize(dest_path)
                 if pos > 0:
                     headers["Range"] = f"bytes={pos}-"
-                    mode = "ab"
 
             with session.get(file_url, headers=headers, stream=True, timeout=(10, 120)) as r:
-                if r.status_code in (200, 206):
-                    with open(dest_path, mode) as f:
-                        for chunk in r.iter_content(chunk_size=1024 * 1024):
-                            if chunk:
-                                f.write(chunk)
+                # 416 = we asked for bytes past the end of the file, which means the
+                # local copy already has everything. Nothing to fetch, not an error.
+                if r.status_code == 416:
                     return True
+
+                # Pick the write mode from the RESPONSE, not from what we asked for:
+                #   206 -> server honoured the Range, append the remaining bytes
+                #   200 -> server ignored the Range and is resending the whole file,
+                #          so overwrite (appending it would duplicate and corrupt)
+                if r.status_code == 206:
+                    mode = "ab"
+                elif r.status_code == 200:
+                    mode = "wb"
+                else:
+                    continue  # unexpected status — let the retry loop try again
+
+                with open(dest_path, mode) as f:
+                    for chunk in r.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            f.write(chunk)
+                return True
         except Exception as e:
             print(f"[WARNING] Attempt {attempt} error for {filename}: {e}")
     return False
