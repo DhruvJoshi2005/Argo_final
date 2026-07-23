@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from psycopg2 import pool
 from openai import OpenAI
 
+from rate_limit import consume_llm_budget
+
 # ======================================================
 # STEP 0: GLOBALS
 # ======================================================
@@ -139,6 +141,10 @@ For time — extract as time_start and time_end (YYYY-MM-DD strings):
 USER QUESTION:
 {question}
 """
+
+    # Cache missed above -> we are about to make a real (paid) OpenAI call.
+    # Enforce the daily budget here so cache hits are never charged against it.
+    consume_llm_budget()
 
     response = client.chat.completions.create(
         model="gpt-4.1-mini",

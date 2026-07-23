@@ -5,10 +5,13 @@ import os
 
 import psycopg2
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from prometheus_fastapi_instrumentator import Instrumentator, metrics
+
+from rate_limit import rate_guard, budget_status
 
 load_dotenv()
 
@@ -56,6 +59,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ===============================
+# METRICS — Prometheus (/metrics)
+# Records request count, latency, and status per endpoint.
+# Purely additive: does not alter any existing route or logic.
+#
+# Custom fine-grained latency buckets (down to 1ms) so the dashboard can
+# actually distinguish sub-5ms cache hits from multi-second cache misses.
+# The library's default buckets start at 0.1s, which would lump them together.
+# ===============================
+_LATENCY_BUCKETS = (
+    0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.075, 0.1,
+    0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0,
+)
+_instrumentator = Instrumentator()
+_instrumentator.add(metrics.default(latency_highr_buckets=_LATENCY_BUCKETS))
+_instrumentator.instrument(app).expose(app)
+
 
 # ===============================
 # SCHEMAS
@@ -88,6 +108,13 @@ class ChatResponse(BaseModel):
 @app.get("/")
 def home():
     return {"message": "Backend is running!"}
+
+
+@app.get("/usage")
+def usage():
+    """Current AI-query budget + rate-limit config. Handy for confirming the
+    cost protection is active and how much daily budget is left."""
+    return budget_status()
 
 
 @app.get("/health")
@@ -234,7 +261,7 @@ def _build_export_sql(question: str):
     return sql, col, metric
 
 
-@app.post("/export/count")
+@app.post("/export/count", dependencies=[Depends(rate_guard)])
 def export_count(request: ChatRequest):
     """Return row count + estimated file size for the given NL question before downloading."""
     try:
@@ -252,7 +279,7 @@ def export_count(request: ChatRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/export")
+@app.post("/export", dependencies=[Depends(rate_guard)])
 def export_csv(request: ExportRequest):
     """Run the same NL query as /chat_optimised but return raw data as a CSV download."""
     from chat_main_optimised import execute_sql
@@ -291,7 +318,7 @@ def refresh_data():
 # ===============================
 # CHAT — optimised (primary)
 # ===============================
-@app.post("/chat_optimised", response_model=ChatResponse)
+@app.post("/chat_optimised", response_model=ChatResponse, dependencies=[Depends(rate_guard)])
 def chat_optimised_endpoint(request: ChatRequest):
     logger.info("chat_optimised: %r", request.question)
     try:
@@ -310,7 +337,7 @@ def chat_optimised_endpoint(request: ChatRequest):
 # ===============================
 # CHAT — unoptimised (legacy)
 # ===============================
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/chat", response_model=ChatResponse, dependencies=[Depends(rate_guard)])
 def chat_endpoint(request: ChatRequest):
     logger.info("chat: %r", request.question)
     try:

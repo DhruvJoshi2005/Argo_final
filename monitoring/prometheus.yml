@@ -1,0 +1,22 @@
+# Prometheus configuration for the ARGO project.
+#
+# "scraping" = Prometheus visiting a /metrics page on a schedule and saving
+# the numbers it finds, so it can show how they change over time.
+
+global:
+  scrape_interval: 5s        # read every target's /metrics once every 5 seconds
+
+# Load alerting rules from this file (see alert.rules.yml).
+rule_files:
+  - "alert.rules.yml"
+
+scrape_configs:
+  # ARGO FastAPI app
+  - job_name: "argo"
+    static_configs:
+      - targets: ["localhost:8000"]   # ARGO serves /metrics here
+
+  # Prometheus also scrapes itself (handy sanity check that Prometheus is alive)
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

@@ -1,0 +1,17 @@
+# Tells Grafana to load any dashboard .json files it finds in this folder on
+# startup, so the ARGO dashboard appears automatically (no manual import).
+
+apiVersion: 1
+
+providers:
+  - name: ARGO
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      # Absolute path to the folder holding argo-dashboard.json
+      path: "/run/media/dhruv/New Volume/final_projects/argo(backend+data exploration)/argoo_backend/monitoring/grafana-provisioning/dashboards"
+      foldersFromFilesStructure: false

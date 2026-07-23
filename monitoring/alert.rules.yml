@@ -1,0 +1,32 @@
+# Prometheus alerting rules for ARGO.
+#
+# An "alert rule" is a condition Prometheus checks continuously. When the
+# condition stays true for the `for:` duration, the alert moves to FIRING —
+# in a full production setup that would notify Slack/email/PagerDuty. Here we
+# just demonstrate the concept; you can see alerts under the "Alerts" tab in
+# the Prometheus UI (http://localhost:9090/alerts).
+
+groups:
+  - name: argo-alerts
+    rules:
+      # Fires if 95th-percentile latency stays above 1 second for 1 minute.
+      # In normal operation (cache hits) p95 sits at a few milliseconds, so
+      # this only trips when lots of uncached/slow requests pile up.
+      - alert: HighP95Latency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_highr_seconds_bucket{job="argo"}[1m])) by (le)) > 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ARGO p95 latency is high"
+          description: "95th-percentile request latency has been above 1s for over a minute (expected value with caching is a few ms)."
+
+      # Fires if the ARGO app stops responding to Prometheus scrapes at all.
+      - alert: ArgoDown
+        expr: up{job="argo"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "ARGO API is down"
+          description: "Prometheus cannot scrape the ARGO app (it may have crashed or been stopped)."

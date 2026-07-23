@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from rate_limit import consume_llm_budget
+
 
 # =============================================================
 # BAD PRACTICE: No global client, no pool, no cache.
@@ -52,6 +54,10 @@ Supported metrics: temperature, salinity, pressure, oxygen, chlorophyll, backsca
 USER QUESTION:
 {question}
 """
+
+    # This path has no cache, so every call is a real (paid) OpenAI call.
+    # Enforce the daily budget before spending money.
+    consume_llm_budget()
 
     response = client.chat.completions.create(
         model="gpt-4.1-mini",

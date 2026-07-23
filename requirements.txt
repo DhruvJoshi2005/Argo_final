@@ -40,6 +40,7 @@ openai==2.14.0
 packaging==25.0
 pandas==2.3.3
 plotly==6.5.0
+prometheus-fastapi-instrumentator==8.0.2
 protobuf==6.33.2
 psycopg2==2.9.11
 pydantic==2.12.5

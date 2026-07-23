@@ -1,0 +1,15 @@
+# Auto-connects Grafana to Prometheus on startup, so you never have to add
+# the data source by hand in the UI. (The manual way — Connections → Data
+# sources → Add → Prometheus → URL http://localhost:9090 → Save & Test —
+# does exactly what this file does.)
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: argo-prometheus          # stable ID the dashboard panels reference
+    access: proxy                 # Grafana's backend talks to Prometheus (not your browser)
+    url: http://localhost:9090
+    isDefault: true
+    editable: true

@@ -1,6 +1,7 @@
 # virtual environments
 argo_venv/
 venv/
+.venv/
 
 # downloaded data
 data_downloads/
@@ -21,6 +22,18 @@ download_log.json
 
 # test cache
 .pytest_cache/
+
+# personal local docs (kept on disk, intentionally not part of the repo)
+PROJECT_STUDY_GUIDE.md
+
+# monitoring — large downloaded binaries & runtime data.
+# The configs, dashboards, provisioning, and scripts ARE tracked; these are not.
+monitoring/prometheus/
+monitoring/grafana/
+monitoring/grafana-data/
+monitoring/grafana-logs/
+monitoring/*.pid
+monitoring/.*.pid
 
 # OS
 .DS_Store
