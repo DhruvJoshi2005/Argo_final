@@ -263,6 +263,28 @@ body {
   border-color: var(--cyan);
 }
 
+/* "Live Monitoring" button — green accent so it reads as a separate,
+   observability-related action rather than another site link. */
+.btn-monitor {
+  font-family: inherit;
+  border-color: rgba(52, 211, 153, 0.35);
+  color: var(--green);
+  background: rgba(52, 211, 153, 0.06);
+}
+.btn-monitor:hover {
+  background: rgba(52, 211, 153, 0.14);
+  border-color: var(--green);
+}
+.monitor-status {
+  margin-top: 14px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  min-height: 20px;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.monitor-status.show { opacity: 1; }
+
 /* Multi-wave hero footer */
 .hero-waves {
   position: absolute;
@@ -1312,7 +1334,11 @@ body {
     <div class="hero-actions">
       <a href="#chat" class="btn-primary">Try the Chat →</a>
       <a href="#about" class="btn-ghost">Learn About Argo</a>
+      <button type="button" class="btn-ghost btn-monitor" onclick="openMonitoring()">
+        📊 Live Monitoring
+      </button>
     </div>
+    <div id="monitor-status" class="monitor-status"></div>
   </div>
 
   <div class="hero-waves">
@@ -1895,6 +1921,38 @@ const BACKEND_URL = window.BACKEND_URL ||
   (_h === "" || _h === "localhost" || _h === "127.0.0.1"
     ? "http://127.0.0.1:8000"
     : "https://argo-rn2r.onrender.com");
+
+/* =================== LIVE MONITORING =================== */
+/* Prometheus and the API both run on Render's free tier, which puts a service
+   to sleep after ~15 min idle. Hitting their URLs wakes them, so this button
+   fires a wake-up request at both and opens the Grafana dashboard. */
+const PROMETHEUS_URL = "https://argo-prometheus.onrender.com";
+const GRAFANA_DASHBOARD_URL =
+  "https://glowingpizza493.grafana.net/d/argo-monitoring/argo-e28094-api-monitoring" +
+  "?orgId=1&from=now-15m&to=now&refresh=5s";
+
+function openMonitoring() {
+  const status = document.getElementById("monitor-status");
+  const say = (msg) => {
+    if (!status) return;
+    status.textContent = msg;
+    status.classList.add("show");
+  };
+
+  say("⏳ Waking the monitoring stack… first load can take ~1 min (free-tier cold start).");
+
+  // Fire-and-forget wake-ups. `no-cors` because we don't need to read the
+  // response — the request landing on Render is what spins the service back up.
+  try { fetch(PROMETHEUS_URL, { mode: "no-cors", cache: "no-store" }).catch(() => {}); } catch (e) {}
+  try { fetch(BACKEND_URL + "/", { mode: "no-cors", cache: "no-store" }).catch(() => {}); } catch (e) {}
+
+  // Opened synchronously inside the click handler so pop-up blockers allow it.
+  window.open(GRAFANA_DASHBOARD_URL, "_blank", "noopener");
+
+  setTimeout(() => {
+    say("✅ Wake-up sent. If the dashboard looks empty, wait ~30s and refresh it.");
+  }, 5000);
+}
 
 /* =================== DOWNLOAD MODAL =================== */
 let _modalQuestion = "";
