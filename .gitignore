@@ -34,6 +34,7 @@ monitoring/grafana-data/
 monitoring/grafana-logs/
 monitoring/*.pid
 monitoring/.*.pid
+monitoring/.grafana_cloud_token
 
 # OS
 .DS_Store

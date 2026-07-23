@@ -10,11 +10,25 @@ global:
 rule_files:
   - "alert.rules.yml"
 
+# Ship a copy of every scraped metric to Grafana Cloud (hosted Prometheus), so
+# the dashboard is available at a shareable cloud URL — not just on this laptop.
+# The API token lives in .grafana_cloud_token (gitignored) and is NEVER committed.
+remote_write:
+  - url: https://prometheus-prod-43-prod-ap-south-1.grafana.net/api/prom/push
+    basic_auth:
+      username: "3390490"
+      password_file: .grafana_cloud_token
+
 scrape_configs:
-  # ARGO FastAPI app
+  # ARGO FastAPI app — PRODUCTION (Render, live Neon DB)
   - job_name: "argo"
+    scheme: https                       # Render serves over HTTPS
+    scrape_interval: 15s                # gentler on the free tier
     static_configs:
-      - targets: ["localhost:8000"]   # ARGO serves /metrics here
+      - targets: ["argo-rn2r.onrender.com"]   # /metrics on the deployed app
+    # To monitor the LOCAL app instead, comment the two lines above and use:
+    #   static_configs:
+    #     - targets: ["localhost:8000"]
 
   # Prometheus also scrapes itself (handy sanity check that Prometheus is alive)
   - job_name: "prometheus"

@@ -1,0 +1,32 @@
+# Prometheus config for the RENDER-hosted instance.
+#
+# This runs as its own small Render service. It scrapes the deployed ARGO app
+# and ships every sample to Grafana Cloud, so the cloud dashboard keeps a
+# permanent history even after this service spins down.
+#
+# NOTE on Render's free tier: the service sleeps after ~15 min with no incoming
+# traffic. Opening its URL wakes it, and it then scrapes continuously until it
+# idles out again — which is plenty for a live demo. Whatever it collects while
+# awake is already safe in Grafana Cloud.
+#
+# The Grafana Cloud token is NOT in this file. The container's entrypoint writes
+# it from the GRAFANA_CLOUD_TOKEN environment variable (set in the Render
+# dashboard) to /tmp/gc_token, which password_file reads below.
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+remote_write:
+  - url: https://prometheus-prod-43-prod-ap-south-1.grafana.net/api/prom/push
+    basic_auth:
+      username: "3390490"
+      password_file: /tmp/gc_token
+
+scrape_configs:
+  # The deployed ARGO API (also on Render). Scraping it has a useful side
+  # effect: it keeps the ARGO app awake too while this Prometheus is running.
+  - job_name: "argo"
+    scheme: https
+    static_configs:
+      - targets: ["argo-rn2r.onrender.com"]
