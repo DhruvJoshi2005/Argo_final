@@ -1,18 +1,13 @@
-# Prometheus configuration for the ARGO project.
-#
-# "scraping" = Prometheus visiting a /metrics page on a schedule and saving
-# the numbers it finds, so it can show how they change over time.
+# Prometheus config for local monitoring of the deployed ARGO app.
 
 global:
   scrape_interval: 5s        # read every target's /metrics once every 5 seconds
 
-# Load alerting rules from this file (see alert.rules.yml).
 rule_files:
   - "alert.rules.yml"
 
-# Ship a copy of every scraped metric to Grafana Cloud (hosted Prometheus), so
-# the dashboard is available at a shareable cloud URL — not just on this laptop.
-# The API token lives in .grafana_cloud_token (gitignored) and is NEVER committed.
+# Ship a copy of every sample to Grafana Cloud so history survives restarts.
+# Token lives in .grafana_cloud_token (gitignored).
 remote_write:
   - url: https://prometheus-prod-43-prod-ap-south-1.grafana.net/api/prom/push
     basic_auth:

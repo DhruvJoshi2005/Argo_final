@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stops ARGO + Prometheus + Grafana that were started by ./start.sh
+# Stops the services started by ./start.sh
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 for name in argo prometheus grafana; do

@@ -41,9 +41,7 @@ def get_platform_number(ds, filename):
 
 
 def safe_float(v, default=None):
-    # NOTE: previously defaulted to 0.0 and had no NaN/inf guard, so masked
-    # LATITUDE/LONGITUDE fill values could silently become 0.0 ("null island")
-    # instead of a missing value.
+    # Defaults to None, not 0.0: (0, 0) is a real location off Africa.
     try:
         v = float(v)
         if np.isnan(v) or np.isinf(v):
@@ -125,19 +123,16 @@ def process_rtraj_file(conn, filepath):
         dm_arr  = ds["DATA_MODE"].values if "DATA_MODE" in ds else None
         juld_arr = ds["JULD"].values if "JULD" in ds else None
 
-        # LATITUDE/LONGITUDE/POSITION_QC/JULD are indexed by N_MEASUREMENT (one row
-        # per trajectory/GPS fix), NOT by cycle — CYCLE_NUMBER repeats across many
-        # rows per cycle, so a cycle number can't be used as a direct array index
-        # into them. Walk all measurement rows once and keep the last QC-good
-        # ('1'/'2') position (and its JULD) seen per cycle (rows are chronological).
+        # Positions are indexed by N_MEASUREMENT (one row per GPS fix), not by
+        # cycle, so a cycle number is not a valid index into them. Walk every row
+        # and keep the last QC-good fix per cycle (rows are chronological).
         measurement_aligned = (
             lat_arr is not None and lon_arr is not None
             and len(lat_arr) == len(cycle_arr) and len(lon_arr) == len(cycle_arr)
         )
         juld_per_measurement = juld_arr is not None and len(juld_arr) == len(cycle_arr)
-        # DATA_MODE is documented as per-cycle in the Argo trajectory spec, unlike
-        # LATITUDE/LONGITUDE — only treat it as per-measurement if its length
-        # actually matches, otherwise leave it unset rather than guess.
+        # DATA_MODE is per-cycle in the spec; only read it per-measurement if the
+        # lengths actually match.
         dm_per_measurement = dm_arr is not None and len(dm_arr) == len(cycle_arr)
 
         per_cycle = {}  # cycle_number -> {"lat", "lon", "position_qc", "data_mode", "juld"}

@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
-# Starts the whole monitoring stack: ARGO API + Prometheus + Grafana.
-# Everything runs in the background; logs go to monitoring/*.log.
-# Stop it all again with ./stop.sh
+# Starts ARGO API + Prometheus + Grafana in the background (logs: monitoring/*.log).
+# Stop with ./stop.sh
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Make the Grafana dashboard-provider path match wherever this repo lives now
-# (so the setup keeps working even if you move or rename the project folder).
+# Point the dashboard provider at wherever this repo currently lives.
 python3 - "$SCRIPT_DIR" <<'PY'
 import sys, re, pathlib
 sd = sys.argv[1]

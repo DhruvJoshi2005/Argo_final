@@ -60,14 +60,10 @@ app.add_middleware(
 )
 
 # ===============================
-# METRICS — Prometheus (/metrics)
-# Records request count, latency, and status per endpoint.
-# Purely additive: does not alter any existing route or logic.
-#
-# Custom fine-grained latency buckets (down to 1ms) so the dashboard can
-# actually distinguish sub-5ms cache hits from multi-second cache misses.
-# The library's default buckets start at 0.1s, which would lump them together.
+# METRICS (/metrics)
 # ===============================
+# Buckets go down to 1ms; the library defaults start at 0.1s, which would put
+# sub-5ms cache hits and 90ms queries in the same bucket.
 _LATENCY_BUCKETS = (
     0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.075, 0.1,
     0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0,

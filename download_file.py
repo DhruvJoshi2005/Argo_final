@@ -49,15 +49,13 @@ def download_file(file_url, dest_path, retries=3):
                     headers["Range"] = f"bytes={pos}-"
 
             with session.get(file_url, headers=headers, stream=True, timeout=(10, 120)) as r:
-                # 416 = we asked for bytes past the end of the file, which means the
-                # local copy already has everything. Nothing to fetch, not an error.
+                # 416 means we asked past the end: the file is already complete.
                 if r.status_code == 416:
                     return True
 
-                # Pick the write mode from the RESPONSE, not from what we asked for:
-                #   206 -> server honoured the Range, append the remaining bytes
-                #   200 -> server ignored the Range and is resending the whole file,
-                #          so overwrite (appending it would duplicate and corrupt)
+                # Mode comes from the response, not the request: a server that
+                # ignores Range replies 200 with the whole file, and appending
+                # that onto a partial file would corrupt it.
                 if r.status_code == 206:
                     mode = "ab"
                 elif r.status_code == 200:

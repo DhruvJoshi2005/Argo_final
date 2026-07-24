@@ -56,9 +56,8 @@ DB_PARAMS = {
     "sslmode":  os.getenv("DB_SSLMODE", "disable"),
 }
 
-# ThreadedConnectionPool — thread-safe for FastAPI/uvicorn.
-# Created lazily on first query, not at import time, so importing this module
-# (e.g. in tests, or in `main.py` for other endpoints) never requires a live DB.
+# Built lazily on first query so importing this module never requires a live DB
+# (tests, and main.py's non-DB endpoints, depend on that).
 _DB_POOL = None
 
 
@@ -142,8 +141,7 @@ USER QUESTION:
 {question}
 """
 
-    # Cache missed above -> we are about to make a real (paid) OpenAI call.
-    # Enforce the daily budget here so cache hits are never charged against it.
+    # Only cache misses reach here, so cache hits never consume budget.
     consume_llm_budget()
 
     response = client.chat.completions.create(
@@ -405,9 +403,8 @@ def build_query_plan(intent, filters, aggregation, grouping):
 
 # ======================================================
 # STEP 8: SQL GENERATION
-# Every branch returns count + bounding box (+ time range where
-# relevant) alongside the metric, so an answer is never a bare
-# number with no indication of how much data backs it.
+# Summary queries also select COUNT, the lat/lon bounding box and the time
+# range, so an answer can state how much data it is based on.
 # ======================================================
 
 def _build_where(filters: list) -> str:
@@ -505,9 +502,6 @@ def execute_sql(sql: str):
 
 # ======================================================
 # STEP 10b: ANSWER FORMATTING
-# Mode-aware — a bare average is misleading over sparse,
-# geographically clustered float data, so every answer carries
-# count + spatial/temporal extent instead of a lone number.
 # ======================================================
 
 def _fmt(v, decimals=2):

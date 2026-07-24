@@ -93,9 +93,7 @@ def get_or_create_cycle(conn, platform_number, cycle_number, juld, lat, lon):
         if r:
             cycle_id, existing_lat, existing_lon = r
             if (existing_lat is None or existing_lon is None) and lat is not None and lon is not None:
-                # Self-heal: an earlier ingestion pass (e.g. RTRAJ with no match for
-                # this cycle) may have left this cycle without a position. PROF/SPROF
-                # carry their own LATITUDE/LONGITUDE, so fill it in now.
+                # Backfill a position left NULL by an earlier pass.
                 cur.execute(
                     """
                     UPDATE float_cycles
@@ -214,8 +212,7 @@ def process_prof_file(conn, path):
     data_modes = ds["DATA_MODE"].values
     julds = ds["JULD"].values if "JULD" in ds else None
 
-    # _prof.nc carries its own LATITUDE/LONGITUDE/POSITION_QC, one entry per
-    # profile, aligned with CYCLE_NUMBER on the same N_PROF axis as TEMP/PSAL.
+    # Per-profile position, on the same N_PROF axis as TEMP/PSAL.
     lat_arr = ds["LATITUDE"].values if "LATITUDE" in ds else None
     lon_arr = ds["LONGITUDE"].values if "LONGITUDE" in ds else None
     pos_qc_arr = ds["POSITION_QC"].values if "POSITION_QC" in ds else None
@@ -233,14 +230,11 @@ def process_prof_file(conn, path):
         )
         juld = julds[p] if julds is not None else None
 
-        # Creates the cycle with a real position if RTRAJ hasn't produced one
-        # yet, instead of skipping the whole profile.
         cycle_id = get_or_create_cycle(conn, platform_number, cycle_number, juld, lat, lon)
 
         direction = safe_str(directions[p])
         data_mode = safe_str(data_modes[p])
 
-        # 🔁 Overwrite-safe logic
         existing_profile_id = get_existing_profile_id(
             conn, cycle_id, "PROF", direction
         )

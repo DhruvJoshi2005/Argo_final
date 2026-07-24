@@ -1,26 +1,11 @@
 """
-Abuse / cost protection for the ARGO API.
+Rate limiting and OpenAI budget guards for the ARGO API.
 
-Two independent layers guard the OpenAI-backed endpoints so a sudden flood of
-requests cannot drain the (small) OpenAI credit balance:
+Layer 1: fixed-window rate limit (per-IP and global), applied as a FastAPI
+dependency so over-limit requests are rejected before any work happens.
+Layer 2: hard daily cap on real OpenAI calls; cache hits are not counted.
 
-  LAYER 1 — Rate limiting (burst throttle)
-    A fixed 60-second window caps how many requests are accepted, both
-    GLOBALLY (across everyone) and PER CLIENT IP. Applied as a FastAPI
-    dependency, so an over-limit request is rejected with HTTP 429 before any
-    work (or any OpenAI call) happens. Proxy-aware: reads X-Forwarded-For so it
-    still sees real client IPs behind Render/other proxies.
-
-  LAYER 2 — Daily OpenAI budget (the real wallet guarantee)
-    A hard cap on the number of ACTUAL OpenAI calls per day. Only cache MISSES
-    reach this (cache hits are free and never counted). Once the daily cap is
-    reached, further calls raise LLMBudgetExceeded instead of spending money.
-    This works no matter how many IPs are involved, which is what actually
-    protects the budget against a distributed flood.
-
-All limits are configurable via environment variables (see defaults below).
-State is in-memory — perfect for a single-instance deployment (e.g. Render
-free tier). If you ever run multiple instances, move this to Redis.
+State is in-memory, which suits a single instance. Use Redis for multi-instance.
 """
 
 import os

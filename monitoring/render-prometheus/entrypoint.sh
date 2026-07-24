@@ -1,23 +1,16 @@
 #!/bin/sh
-# Startup script for the Render-hosted Prometheus.
-#
-# Two things Render needs that a plain Prometheus image doesn't do by default:
-#   1. The Grafana Cloud token arrives as an environment variable (a Render
-#      secret), but Prometheus can't read env vars inside its YAML config — so
-#      we write it to a file that the config's `password_file` points at.
-#   2. Render assigns the port dynamically via $PORT, so Prometheus must bind
-#      to that instead of its default 9090.
+# Prometheus can't read env vars in its YAML, so write the Grafana Cloud token
+# to a file for password_file, and bind to Render's dynamic $PORT.
 
 set -e
 
 TOKEN_FILE=/tmp/gc_token
 
 if [ -n "$GRAFANA_CLOUD_TOKEN" ]; then
-  # printf (not echo) so no trailing newline sneaks into the token
   printf '%s' "$GRAFANA_CLOUD_TOKEN" > "$TOKEN_FILE"
   echo "startup: Grafana Cloud token loaded, remote_write enabled"
 else
-  # Still start up — scraping works, only the push to Grafana Cloud will fail.
+  # Still start: scraping works, only remote_write will fail.
   printf '' > "$TOKEN_FILE"
   echo "startup: WARNING - GRAFANA_CLOUD_TOKEN is not set; remote_write will fail" >&2
 fi

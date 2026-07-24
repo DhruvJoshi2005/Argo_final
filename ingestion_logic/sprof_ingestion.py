@@ -114,9 +114,7 @@ def get_or_create_cycle(conn, platform_number, cycle_number, juld, lat, lon):
         if r:
             cycle_id, existing_lat, existing_lon = r
             if (existing_lat is None or existing_lon is None) and lat is not None and lon is not None:
-                # Self-heal: an earlier ingestion pass (e.g. RTRAJ with no match for
-                # this cycle) may have left this cycle without a position. Sprof
-                # carries its own LATITUDE/LONGITUDE, so fill it in now.
+                # Backfill a position left NULL by an earlier pass.
                 cur.execute(
                     """
                     UPDATE float_cycles
@@ -250,8 +248,7 @@ def process_sprof_file(conn, path):
     julds = ds["JULD"].values
     directions = ds["DIRECTION"].values if "DIRECTION" in ds else [None] * pres.shape[0]
 
-    # _Sprof.nc carries its own LATITUDE/LONGITUDE/POSITION_QC, one entry per
-    # profile, aligned with CYCLE_NUMBER on the same N_PROF axis as PRES/TEMP.
+    # Per-profile position, on the same N_PROF axis as PRES/TEMP.
     lat_arr = ds["LATITUDE"].values if "LATITUDE" in ds else None
     lon_arr = ds["LONGITUDE"].values if "LONGITUDE" in ds else None
     pos_qc_arr = ds["POSITION_QC"].values if "POSITION_QC" in ds else None

@@ -6,7 +6,7 @@
   <title>ARGO Ocean Analytics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
-  <!-- Leaflet — interactive map library for the float-trajectory explorer -->
+  <!-- Leaflet: map library for the float-trajectory explorer -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -266,8 +266,7 @@ body {
   border-color: var(--cyan);
 }
 
-/* "Live Monitoring" button — green accent so it reads as a separate,
-   observability-related action rather than another site link. */
+/* "Live Monitoring" button */
 .btn-monitor {
   font-family: inherit;
   border-color: rgba(52, 211, 153, 0.35);
@@ -378,7 +377,6 @@ body {
   border-color: rgba(34, 211, 238, 0.45);
   box-shadow: 0 8px 40px rgba(34, 211, 238, 0.1), 0 0 0 1px rgba(34,211,238,0.05);
 }
-.card-icon { font-size: 2rem; margin-bottom: 14px; }
 .card h3 { font-size: 1rem; font-weight: 600; color: #f0f9ff; margin-bottom: 10px; }
 .card p  { font-size: 0.875rem; color: var(--text-muted); line-height: 1.68; }
 
@@ -522,7 +520,6 @@ body {
   box-shadow: 0 4px 24px rgba(34, 211, 238, 0.07);
   transform: translateY(-2px);
 }
-.feature-icon { font-size: 1.7rem; flex-shrink: 0; margin-top: 2px; }
 .feature-body h3 { font-size: 0.97rem; font-weight: 600; color: #f0f9ff; margin-bottom: 8px; }
 .feature-body p  { font-size: 0.855rem; color: var(--text-muted); line-height: 1.68; }
 
@@ -550,10 +547,6 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
-}
-.datasource-icon {
-  font-size: 1.8rem;
-  filter: drop-shadow(0 0 8px rgba(34,211,238,0.4));
 }
 .datasource-text h4 {
   font-size: 0.88rem;
@@ -1323,7 +1316,7 @@ body {
   border: 1px solid var(--border); overflow: hidden; background: var(--deep);
 }
 .track-status { margin-top: 14px; text-align: center; color: var(--text-muted); font-size: 0.85rem; min-height: 20px; }
-/* Leaflet dark-theme touch-ups so the map matches the site */
+/* Leaflet dark-theme overrides */
 .track-map .leaflet-container { background: var(--deep); font-family: var(--font); }
 .track-map .leaflet-popup-content-wrapper, .track-map .leaflet-popup-tip {
   background: var(--card); color: var(--text); border: 1px solid var(--border);
@@ -1353,7 +1346,7 @@ body {
 <!-- =================== HERO =================== -->
 <header class="hero">
   <nav class="nav">
-    <div class="nav-logo">🌊 ARGO Analytics</div>
+    <div class="nav-logo">ARGO Analytics</div>
     <div class="nav-links">
       <a href="#about">About</a>
       <a href="#floatmap">Float Map</a>
@@ -1365,7 +1358,7 @@ body {
   </nav>
 
   <div class="hero-content">
-    <div class="hero-badge">🤖 AI-Powered &nbsp;·&nbsp; 16.8M+ Measurements &nbsp;·&nbsp; Real Argo Data</div>
+    <div class="hero-badge">AI-Powered &nbsp;·&nbsp; 16.8M+ Measurements &nbsp;·&nbsp; Real Argo Data</div>
     <h1 class="hero-title">Ask the <span class="accent">Ocean</span><br/>Anything</h1>
     <p class="hero-sub">
       Natural language queries over real Argo float measurements —
@@ -1376,7 +1369,7 @@ body {
       <a href="#chat" class="btn-primary">Try the Chat →</a>
       <a href="#about" class="btn-ghost">Learn About Argo</a>
       <button type="button" class="btn-ghost btn-monitor" onclick="openMonitoring()">
-        📊 Live Monitoring
+        Live Monitoring
       </button>
     </div>
     <div id="monitor-status" class="monitor-status"></div>
@@ -1395,14 +1388,13 @@ body {
 <div class="datasource-strip">
   <div class="datasource-inner">
     <div class="datasource-left">
-      <div class="datasource-icon">🛰️</div>
       <div class="datasource-text">
         <h4>Live Data Source — INCOIS Argo Data Centre</h4>
         <p>NetCDF float profiles fetched directly from the Indian National Centre for Ocean Information Services</p>
       </div>
     </div>
     <a href="https://data-argo.ifremer.fr/dac/incois/?C=M;O=D" target="_blank" rel="noopener" class="datasource-url">
-      🔗 data-argo.ifremer.fr/dac/incois/
+      data-argo.ifremer.fr/dac/incois/
     </a>
   </div>
 </div>
@@ -1421,22 +1413,18 @@ body {
 
     <div class="cards-grid">
       <div class="card">
-        <div class="card-icon">🤿</div>
         <h3>4,000+ Active Floats</h3>
         <p>Autonomous profiling floats deployed across every major ocean basin. Each float drifts with currents, dives to 2,000 m on a 10-day cycle, and surfaces to transmit.</p>
       </div>
       <div class="card">
-        <div class="card-icon">🌡️</div>
         <h3>Multi-Parameter Sensing</h3>
         <p>Core floats measure temperature, salinity, and pressure. BGC-Argo floats add dissolved oxygen, chlorophyll-a, optical backscatter, and pH — critical for biological oceanography.</p>
       </div>
       <div class="card">
-        <div class="card-icon">🛰️</div>
         <h3>Satellite Data Relay</h3>
         <p>After surfacing, floats transmit to global data centres — INCOIS, Coriolis, AOML, BODC — within hours. This project ingests INCOIS Argo data directly.</p>
       </div>
       <div class="card">
-        <div class="card-icon">🌍</div>
         <h3>Global Scientific Impact</h3>
         <p>Argo data underpins IPCC climate assessments, hurricane intensity forecasting, fisheries management, sea-level studies, and carbon cycle research worldwide.</p>
       </div>
@@ -1491,12 +1479,12 @@ body {
           <div class="map-label-sub">Latest positions of active floats (data distributed within last 30 days) · Source: jcommops.org</div>
         </div>
         <a href="https://data-argo.ifremer.fr/dac/incois/?C=M;O=D" target="_blank" rel="noopener" class="map-source-btn">
-          🗄️ Browse Raw Data →
+          Browse Raw Data →
         </a>
       </div>
     </div>
 
-    <!-- Interactive float trajectory explorer (live data from /float/{id}/track) -->
+    <!-- Float trajectory explorer -->
     <div class="track-explorer">
       <div class="track-head">
         <h3 class="track-title">Trace a Float's Journey</h3>
@@ -1530,42 +1518,36 @@ body {
 
     <div class="features-grid">
       <div class="feature-card">
-        <div class="feature-icon">💬</div>
         <div class="feature-body">
           <h3>Natural Language Querying</h3>
           <p>Ask "What is the average temperature at the equator?" — GPT-4.1-mini extracts your intent and the backend builds exact SQL automatically. No query syntax needed.</p>
         </div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">⚡</div>
         <div class="feature-body">
           <h3>LRU Intent Caching</h3>
           <p>Repeated or similar questions skip the LLM entirely and return from an in-memory LRU cache. Cache hits answer in under 5 ms — zero API cost, zero latency.</p>
         </div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🔗</div>
         <div class="feature-body">
           <h3>Threaded Connection Pool</h3>
           <p>10 pre-warmed PostgreSQL connections reused across all requests. No TCP handshake per query — concurrent users are handled safely with thread locking.</p>
         </div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🗺️</div>
         <div class="feature-body">
           <h3>8 Ocean Regions</h3>
           <p>Ask about the Equator, Tropic of Cancer/Capricorn, Pacific, Atlantic, Indian, Southern, or Arctic Ocean — bounding-box filters applied automatically from your words.</p>
         </div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🧪</div>
         <div class="feature-body">
           <h3>BGC-Argo Bio Parameters</h3>
           <p>Query dissolved oxygen, chlorophyll-a, optical backscatter (bbp700), and pH alongside core Argo params. 643K+ oxygen measurements, 592K+ chlorophyll readings included.</p>
         </div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">📊</div>
         <div class="feature-body">
           <h3>Live Performance Metrics</h3>
           <p>Every response returns intent_ms, sql_ms, total_ms, and a cache_hit flag — watch exactly where time is spent (or saved) in real time below each answer.</p>
@@ -1586,76 +1568,76 @@ body {
     </p>
 
     <div class="query-tabs">
-      <button class="tab-btn active" onclick="showCat(this,'region')">🗺️ By Region</button>
-      <button class="tab-btn" onclick="showCat(this,'depth')">🔽 By Depth</button>
-      <button class="tab-btn" onclick="showCat(this,'coords')">📍 Coordinates</button>
-      <button class="tab-btn" onclick="showCat(this,'bio')">🧪 Bio Params</button>
-      <button class="tab-btn" onclick="showCat(this,'combined')">⚡ Combined</button>
-      <button class="tab-btn" onclick="showCat(this,'time')">⏱️ By Time</button>
+      <button class="tab-btn active" onclick="showCat(this,'region')">By Region</button>
+      <button class="tab-btn" onclick="showCat(this,'depth')">By Depth</button>
+      <button class="tab-btn" onclick="showCat(this,'coords')">Coordinates</button>
+      <button class="tab-btn" onclick="showCat(this,'bio')">Bio Params</button>
+      <button class="tab-btn" onclick="showCat(this,'combined')">Combined</button>
+      <button class="tab-btn" onclick="showCat(this,'time')">By Time</button>
     </div>
 
     <div class="query-category active" id="cat-region">
       <p class="cat-desc">Named ocean regions — bounding box filter applied automatically from your words</p>
       <div class="queries-grid">
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is the average temperature in the Arabian Sea?">🌊 Avg temperature &mdash; Arabian Sea</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is the average salinity in the Bay of Bengal?">💧 Avg salinity &mdash; Bay of Bengal</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is the maximum temperature in the Indian Ocean?">🌡️ Max temperature &mdash; Indian Ocean</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen in the Andaman Sea?">🫧 Dissolved oxygen &mdash; Andaman Sea</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is the average temperature in the Arabian Sea?">Avg temperature &mdash; Arabian Sea</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is the average salinity in the Bay of Bengal?">Avg salinity &mdash; Bay of Bengal</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is the maximum temperature in the Indian Ocean?">Max temperature &mdash; Indian Ocean</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen in the Andaman Sea?">Dissolved oxygen &mdash; Andaman Sea</button>
       </div>
     </div>
 
     <div class="query-category" id="cat-depth">
       <p class="cat-desc">Depth filters — uses ±10% pressure window around a target depth, or exact range</p>
       <div class="queries-grid">
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at 200m depth?">🌡️ Temperature at 200 m</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity between 100m and 500m?">💧 Salinity &mdash; 100 m to 500 m</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen at 1000m depth?">🫧 Dissolved oxygen at 1000 m</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at 500m depth?">🌡️ Temperature at 500 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at 200m depth?">Temperature at 200 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity between 100m and 500m?">Salinity &mdash; 100 m to 500 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen at 1000m depth?">Dissolved oxygen at 1000 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at 500m depth?">Temperature at 500 m</button>
       </div>
     </div>
 
     <div class="query-category" id="cat-coords">
       <p class="cat-desc">Explicit lat/lon bounding boxes — the LLM extracts coordinates directly from your text</p>
       <div class="queries-grid">
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at lat 5-22, lon 77-94?">📍 Temperature &mdash; lat 5–22, lon 77–94</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity at lat 10-15, lon 65-75?">📍 Salinity &mdash; lat 10–15, lon 65–75</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average temperature at lat 8-25, lon 50-77?">📍 Avg temperature &mdash; Arabian box</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen at lat 0-10, lon 60-90?">📍 Oxygen &mdash; equatorial Indian Ocean</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at lat 5-22, lon 77-94?">Temperature &mdash; lat 5–22, lon 77–94</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity at lat 10-15, lon 65-75?">Salinity &mdash; lat 10–15, lon 65–75</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average temperature at lat 8-25, lon 50-77?">Avg temperature &mdash; Arabian box</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen at lat 0-10, lon 60-90?">Oxygen &mdash; equatorial Indian Ocean</button>
       </div>
     </div>
 
     <div class="query-category" id="cat-bio">
       <p class="cat-desc">BGC-Argo biological parameters — only floats with bio sensors are included in results</p>
       <div class="queries-grid">
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average chlorophyll-a in the Indian Ocean?">🌿 Chlorophyll-a &mdash; Indian Ocean</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen in the Arabian Sea?">🫧 Dissolved oxygen &mdash; Arabian Sea</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is pH in the Bay of Bengal?">⚗️ pH &mdash; Bay of Bengal</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average backscatter in the Indian Ocean?">💡 Backscatter (bbp700) &mdash; Indian Ocean</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average chlorophyll-a in the Indian Ocean?">Chlorophyll-a &mdash; Indian Ocean</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen in the Arabian Sea?">Dissolved oxygen &mdash; Arabian Sea</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is pH in the Bay of Bengal?">pH &mdash; Bay of Bengal</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average backscatter in the Indian Ocean?">Backscatter (bbp700) &mdash; Indian Ocean</button>
       </div>
     </div>
 
     <div class="query-category" id="cat-combined">
       <p class="cat-desc">Region + depth combined — the most precise queries; filters stack on top of each other</p>
       <div class="queries-grid">
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="Arabian Sea temperature, depth 450 to 550 meters">⚡ Temperature &middot; Arabian Sea &middot; 450–550 m</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity in the Bay of Bengal between 200m and 800m?">⚡ Salinity &middot; Bay of Bengal &middot; 200–800 m</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at lat 12-18, lon 60-75 at 300m depth?">⚡ Temperature &middot; coord box &middot; 300 m</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="Arabian Sea dissolved oxygen, depth 500 to 2000 meters">⚡ Oxygen &middot; Arabian Sea &middot; 500–2000 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="Arabian Sea temperature, depth 450 to 550 meters">Temperature &middot; Arabian Sea &middot; 450–550 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity in the Bay of Bengal between 200m and 800m?">Salinity &middot; Bay of Bengal &middot; 200–800 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is temperature at lat 12-18, lon 60-75 at 300m depth?">Temperature &middot; coord box &middot; 300 m</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="Arabian Sea dissolved oxygen, depth 500 to 2000 meters">Oxygen &middot; Arabian Sea &middot; 500–2000 m</button>
       </div>
     </div>
 
     <div class="query-category" id="cat-time">
       <p class="cat-desc">Filter by observation date — year, year range, month, or "since / after" a year</p>
       <div class="queries-grid">
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average temperature in 2024?">📅 Avg temperature &mdash; year 2024</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity between 2018 and 2020?">📅 Salinity &mdash; 2018 to 2020</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average temperature in June 2026?">📅 Avg temperature &mdash; Jun 2026</button>
-        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen since 2022?">📅 Dissolved oxygen &mdash; since 2022</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average temperature in 2024?">Avg temperature &mdash; year 2024</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is salinity between 2018 and 2020?">Salinity &mdash; 2018 to 2020</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is average temperature in June 2026?">Avg temperature &mdash; Jun 2026</button>
+        <button class="query-chip" onclick="fillOptimised(this.dataset.q,this)" data-q="What is dissolved oxygen since 2022?">Dissolved oxygen &mdash; since 2022</button>
       </div>
     </div>
 
     <div class="send-both-row">
-      <button class="btn-primary" onclick="sendBoth()">⚡ Send to Both Panels</button>
+      <button class="btn-primary" onclick="sendBoth()">Send to Both Panels</button>
       <span class="send-both-hint">Runs the loaded query on both chats to compare performance</span>
     </div>
   </div>
@@ -1675,7 +1657,7 @@ body {
       <div class="compare-card compare-bad">
         <div class="compare-header">
           <span class="dot dot-red"></span>
-          <h3>🐌 Unoptimised &nbsp;<code>/chat</code></h3>
+          <h3>Unoptimised &nbsp;<code>/chat</code></h3>
         </div>
         <ul class="compare-list">
           <li><span class="x">✗</span> New OpenAI client object created on every single request</li>
@@ -1697,7 +1679,7 @@ body {
       <div class="compare-card compare-good">
         <div class="compare-header">
           <span class="dot dot-green"></span>
-          <h3>⚡ Optimised &nbsp;<code>/chat_optimised</code></h3>
+          <h3>Optimised &nbsp;<code>/chat_optimised</code></h3>
         </div>
         <ul class="compare-list">
           <li><span class="check">✓</span> Single OpenAI client instantiated once at startup, reused forever</li>
@@ -1739,7 +1721,7 @@ body {
               <span class="panel-endpoint">/chat</span>
             </div>
           </div>
-          <span class="panel-badge badge-slow">🐌 Slow Path</span>
+          <span class="panel-badge badge-slow">Slow Path</span>
         </div>
 
         <div class="messages" id="chatOld">
@@ -1748,7 +1730,7 @@ body {
 
         <div class="stats-box" id="statsOld">
           <div class="stats-header">
-            <span>📊 Performance</span>
+            <span>Performance</span>
             <button class="clear-btn" onclick="clearChat('old')">Clear</button>
           </div>
           <pre class="stats-content">No stats yet — send a message first</pre>
@@ -1771,7 +1753,7 @@ body {
               <span class="panel-endpoint">/chat_optimised</span>
             </div>
           </div>
-          <span class="panel-badge badge-fast">⚡ Fast Path</span>
+          <span class="panel-badge badge-fast">Fast Path</span>
         </div>
 
         <div class="messages" id="chatNew">
@@ -1780,7 +1762,7 @@ body {
 
         <div class="stats-box" id="statsNew">
           <div class="stats-header">
-            <span>📊 Performance</span>
+            <span>Performance</span>
             <button class="clear-btn" onclick="clearChat('new')">Clear</button>
           </div>
           <pre class="stats-content">No stats yet — send a message first</pre>
@@ -1802,11 +1784,11 @@ body {
   <div class="container">
     <div class="footer-content">
       <div class="footer-left">
-        <div class="footer-logo">🌊 ARGO Analytics</div>
+        <div class="footer-logo">ARGO Analytics</div>
         <p>Real-time ocean intelligence powered by the global Argo float program. Data sourced from INCOIS Argo Data Centre via the International Argo Data System.</p>
         <div class="footer-data-source">
           <a href="https://data-argo.ifremer.fr/dac/incois/?C=M;O=D" target="_blank" rel="noopener">
-            🗄️ data-argo.ifremer.fr/dac/incois/
+            data-argo.ifremer.fr/dac/incois/
           </a>
         </div>
       </div>
@@ -1834,7 +1816,7 @@ body {
 <div id="csv-modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal-box">
     <div class="modal-header">
-      <h3>⬇ Download CSV</h3>
+      <h3>Download CSV</h3>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
@@ -1988,9 +1970,8 @@ const BACKEND_URL = window.BACKEND_URL ||
     : "https://argo-rn2r.onrender.com");
 
 /* =================== FLOAT TRACK MAP =================== */
-/* Plots a float's GPS trajectory from GET /float/{id}/track on a Leaflet map.
-   The map is created lazily on the first float request so it doesn't load
-   tiles until actually used. Uses circleMarkers (no marker-image files needed).*/
+/* Plots a float's GPS trajectory from GET /float/{id}/track.
+   The map is built lazily on first use so tiles aren't loaded until needed. */
 let _trackMap = null;
 let _trackLayer = null;
 
@@ -2066,9 +2047,8 @@ function loadTrackFromInput() {
 }
 
 /* =================== LIVE MONITORING =================== */
-/* Prometheus and the API both run on Render's free tier, which puts a service
-   to sleep after ~15 min idle. Hitting their URLs wakes them, so this button
-   fires a wake-up request at both and opens the Grafana dashboard. */
+/* Render's free tier sleeps idle services, so this wakes both before opening
+   the dashboard. */
 const PROMETHEUS_URL = "https://argo-prometheus.onrender.com";
 // Grafana Cloud "public dashboard" link — opens for anyone, no login required.
 const GRAFANA_DASHBOARD_URL =
@@ -2082,18 +2062,17 @@ function openMonitoring() {
     status.classList.add("show");
   };
 
-  say("⏳ Waking the monitoring stack… first load can take ~1 min (free-tier cold start).");
+  say("Waking the monitoring stack… first load can take ~1 min (free-tier cold start).");
 
-  // Fire-and-forget wake-ups. `no-cors` because we don't need to read the
-  // response — the request landing on Render is what spins the service back up.
+  // Fire-and-forget wake-ups; no-cors since the response isn't needed.
   try { fetch(PROMETHEUS_URL, { mode: "no-cors", cache: "no-store" }).catch(() => {}); } catch (e) {}
   try { fetch(BACKEND_URL + "/", { mode: "no-cors", cache: "no-store" }).catch(() => {}); } catch (e) {}
 
-  // Opened synchronously inside the click handler so pop-up blockers allow it.
+  // Opened synchronously so pop-up blockers allow it.
   window.open(GRAFANA_DASHBOARD_URL, "_blank", "noopener");
 
   setTimeout(() => {
-    say("✅ Wake-up sent. If the dashboard looks empty, wait ~30s and refresh it.");
+    say("Wake-up sent. If the dashboard looks empty, wait ~30s and refresh it.");
   }, 5000);
 }
 
@@ -2140,7 +2119,7 @@ function openDownloadModal(question) {
 
       if (count > 500000) {
         const warn = document.getElementById("modal-warning");
-        warn.textContent = "⚠️ Large dataset (" + countF + " rows). Download may take a minute. Consider using Custom rows for a quick sample.";
+        warn.textContent = "Large dataset (" + countF + " rows). Download may take a minute. Consider using Custom rows for a quick sample.";
         warn.className = "modal-warning show";
       }
 
@@ -2173,7 +2152,7 @@ async function doDownload(limit) {
 
   fullBtn.disabled   = true;
   customBtn.disabled = true;
-  activeBtn.textContent = "⏳ Preparing…";
+  activeBtn.textContent = "Preparing…";
 
   try {
     const body = { question: _modalQuestion };
@@ -2253,19 +2232,19 @@ function sendChat(type) {
       if (data.error) {
         const err = document.createElement("div");
         err.className   = "msg-error";
-        err.textContent = "⚠️ " + data.error;
+        err.textContent = data.error;
         chatEl.appendChild(err);
       } else {
         const bot = document.createElement("div");
         bot.className   = "msg-bot";
-        bot.textContent = "🌊 " + data.answer;
+        bot.textContent = data.answer;
         chatEl.appendChild(bot);
 
         // Download CSV button — optimised panel only
         if (type === "new") {
           const dlBtn = document.createElement("button");
           dlBtn.className   = "download-btn";
-          dlBtn.textContent = "⬇ Download CSV";
+          dlBtn.textContent = "Download CSV";
           dlBtn.onclick     = () => openDownloadModal(question);
           chatEl.appendChild(dlBtn);
         }
@@ -2279,10 +2258,10 @@ function sendChat(type) {
         const sqlHit    = t.sql_ms < 1;
 
         const lines = [
-          `⏱  Intent :  ${String(t.intent_ms).padStart(8)} ms  ${intentHit ? "→ CACHE HIT 🎯" : "→ LLM call"}`,
-          `🗄  SQL    :  ${String(t.sql_ms).padStart(8)} ms  ${sqlHit     ? "→ CACHE HIT 🎯" : "→ DB query"}`,
-          `⚡  Total  :  ${String(t.total_ms).padStart(8)} ms`,
-          t.cache_hit ? `\n✅ Full cache hit — zero LLM calls, zero DB hits` : "",
+          `Intent :  ${String(t.intent_ms).padStart(8)} ms  ${intentHit ? "→ CACHE HIT" : "→ LLM call"}`,
+          `SQL    :  ${String(t.sql_ms).padStart(8)} ms  ${sqlHit     ? "→ CACHE HIT" : "→ DB query"}`,
+          `Total  :  ${String(t.total_ms).padStart(8)} ms`,
+          t.cache_hit ? `\nFull cache hit — zero LLM calls, zero DB hits` : "",
           `\n── Generated SQL ──`,
           data.sql || "n/a"
         ].filter(Boolean);
@@ -2294,7 +2273,7 @@ function sendChat(type) {
       loading.remove();
       const err = document.createElement("div");
       err.className   = "msg-error";
-      err.textContent = "⚠️ Connection error — is the backend running?";
+      err.textContent = "Connection error — is the backend running?";
       chatEl.appendChild(err);
       chatEl.scrollTop = chatEl.scrollHeight;
     });
